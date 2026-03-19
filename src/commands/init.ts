@@ -30,17 +30,27 @@ export async function initializeProject(projectPath: string): Promise<void> {
     }
 
     // Copy .env.example to project
-    const envExamplePath = path.join(__dirname, "../../.env.example");
-    const targetEnvPath = path.join(projectRoot, ".env.example");
+    const envExampleContent = `# AI Model Configuration
+AI_MODEL=copilot
+COPILOT_API_KEY=
+CLAUDE_API_KEY=
 
-    if (fs.existsSync(envExamplePath)) {
-      await fs.copy(envExamplePath, targetEnvPath);
-    }
+# Playwright Configuration
+BROWSER=chromium
+HEADLESS=true
+BASE_URL=http://localhost:3000
+
+# Execution Configuration
+TIMEOUT=30000
+RETRIES=1
+`;
+    const targetEnvPath = path.join(projectRoot, ".env.example");
+    await fs.writeFile(targetEnvPath, envExampleContent);
 
     // Create .env file if it doesn't exist
     const envPath = path.join(projectRoot, ".env");
     if (!fs.existsSync(envPath)) {
-      await fs.writeFile(envPath, fs.readFileSync(targetEnvPath, "utf-8"));
+      await fs.writeFile(envPath, envExampleContent);
       console.log(chalk.green("✓ Created .env file"));
     }
 
