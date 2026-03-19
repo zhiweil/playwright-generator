@@ -2,6 +2,31 @@
 
 This module streamlines the generation of Playwright test cases by integrating with Large Language Models. While there are many AI-based test frameworks that allow test cases to be written in natural language, the following drawbacks are commonly found with these approaches.
 
+## Table of Contents
+
+- [Drawbacks of Current AI-Based Test Frameworks](#drawbacks-of-current-ai-based-test-frameworks)
+- [Why Playwright + AI Test Case Generator?](#why-playwright--ai-test-case-generator)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation & Quick Start](#installation--quick-start)
+- [Project Structure](#project-structure)
+- [Configuration](#configuration)
+  - [Environment Variables (.env)](#environment-variables-env)
+  - [Preset Test Framework](#preset-test-framework)
+  - [Test Cases Written in Natural Language](#test-cases-written-in-natural-language)
+  - [Generation](#generation)
+  - [Test Results & Reporting](#test-results--reporting)
+  - [Execution and Debugging](#execution-and-debugging)
+  - [Advanced Features](#advanced-features)
+  - [CI/CD Integration](#cicd-integration)
+  - [Best Practices](#best-practices)
+  - [Troubleshooting](#troubleshooting)
+  - [GitHub Integration](#github-integration)
+- [Contributing](#contributing)
+  - [Development Setup](#development-setup)
+- [License](#license)
+- [Support](#support)
+
 ## Drawbacks of Current AI-Based Test Frameworks
 
 1. **Lack of Precision and Accuracy**: AI-generated tests may not accurately capture complex user interactions, edge cases, or application-specific logic, leading to false positives or missed bugs.
