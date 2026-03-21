@@ -135,7 +135,7 @@ project-root/
 # AI Model Configuration
 AI_MODEL=copilot                    # Options: copilot, claude
 COPILOT_API_KEY=your_key_here       # Required if using Copilot
-CLAUDE_API_KEY=your_key_here        # Required if using Claude
+CLAUDE_API_KEY=sk-ant-...           # Required if using Claude (starts with sk-ant-)
 
 # Playwright Configuration
 BROWSER=chromium                    # Options: chromium, firefox, webkit
@@ -310,13 +310,14 @@ Workflow file location: `.github/workflows/playwright-tests.yml`
 
 **Common Issues**:
 
-| Issue                               | Solution                                                                              |
-| ----------------------------------- | ------------------------------------------------------------------------------------- |
-| `API key not found`                 | Verify `.env` file exists and `COPILOT_API_KEY` or `CLAUDE_API_KEY` is set            |
-| `Tests timing out`                  | Increase `TIMEOUT` in `.env` or use explicit waits in test cases                      |
-| `Generated code doesn't compile`    | Review the natural language description for clarity; regenerate with a refined prompt |
-| `Tests pass locally but fail in CI` | Check `BASE_URL` environment variable and add debugging with screenshots              |
-| `Selector not found`                | Ensure selectors are unique and reference current UI state                            |
+| Issue                               | Solution                                                                                            |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `API key not found`                 | Verify `.env` file exists and `COPILOT_API_KEY` or `CLAUDE_API_KEY` is set                          |
+| `Claude API connection failed`      | Check `CLAUDE_API_KEY` is valid and account has Claude API access; ensure key starts with `sk-ant-` |
+| `Tests timing out`                  | Increase `TIMEOUT` in `.env` or use explicit waits in test cases                                    |
+| `Generated code doesn't compile`    | Review the natural language description for clarity; regenerate with a refined prompt               |
+| `Tests pass locally but fail in CI` | Check `BASE_URL` environment variable and add debugging with screenshots                            |
+| `Selector not found`                | Ensure selectors are unique and reference current UI state                                          |
 
 ### GitHub Integration
 

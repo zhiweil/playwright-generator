@@ -10,6 +10,11 @@ export class ClaudeProvider extends LLMProvider {
     if (!apiKey) {
       throw new Error("Claude API key is required");
     }
+    if (!apiKey.startsWith("sk-ant-")) {
+      throw new Error(
+        "Claude API key should start with 'sk-ant-'. Please check your Anthropic API key.",
+      );
+    }
     this.apiKey = apiKey;
   }
 
@@ -18,7 +23,7 @@ export class ClaudeProvider extends LLMProvider {
       const response = await axios.post(
         this.baseUrl,
         {
-          model: "claude-3-sonnet-20240229",
+          model: "claude-3-5-sonnet-20241022",
           max_tokens: 100,
           messages: [
             {
@@ -31,14 +36,22 @@ export class ClaudeProvider extends LLMProvider {
           headers: {
             "x-api-key": this.apiKey,
             "anthropic-version": "2023-06-01",
+            "anthropic-beta": "messages-2023-12-15",
             "Content-Type": "application/json",
           },
           timeout: 5000,
         },
       );
       return response.status === 200;
-    } catch (error) {
-      console.error("Claude connection validation failed:", error);
+    } catch (error: any) {
+      if (error.response) {
+        console.error(
+          `Claude connection validation failed with status ${error.response.status}:`,
+          error.response.data,
+        );
+      } else {
+        console.error("Claude connection validation failed:", error.message);
+      }
       return false;
     }
   }
@@ -50,7 +63,7 @@ export class ClaudeProvider extends LLMProvider {
       const response = await axios.post(
         this.baseUrl,
         {
-          model: "claude-3-sonnet-20240229",
+          model: "claude-3-5-sonnet-20241022",
           max_tokens: 2000,
           messages: [
             {
@@ -63,6 +76,7 @@ export class ClaudeProvider extends LLMProvider {
           headers: {
             "x-api-key": this.apiKey,
             "anthropic-version": "2023-06-01",
+            "anthropic-beta": "messages-2023-12-15",
             "Content-Type": "application/json",
           },
           timeout: 30000,
@@ -81,10 +95,11 @@ export class ClaudeProvider extends LLMProvider {
         model: "claude",
         testCaseId: prompt.testCaseId,
       };
-    } catch (error) {
-      throw new Error(
-        `Failed to generate code with Claude: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    } catch (error: any) {
+      const errorMessage = error.response
+        ? `HTTP ${error.response.status}: ${error.response.data?.error?.message || error.response.data}`
+        : error.message;
+      throw new Error(`Failed to generate code with Claude: ${errorMessage}`);
     }
   }
 }
