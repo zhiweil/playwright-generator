@@ -90,6 +90,8 @@ The installed module will have amazing features to facilitate your day-to-day te
    npx playwright-generator init
    ```
 
+   Note: `init` now creates a sample test case file at `tests/saucedemo-samples.test.md` by default.
+
 3. **Configure your environment**:
 
    ```bash
@@ -108,9 +110,7 @@ The installed module will have amazing features to facilitate your day-to-day te
 
 ```
 project-root/
-├── tests/                    # Natural language test cases
-│   └── *.test.md
-├── samples/                  # Sample test cases for reference
+├── tests/                    # Natural language test cases (includes sample test cases)
 │   └── *.test.md
 ├── generated/                # Generated Playwright test code
 │   └── generated.test.ts
@@ -172,9 +172,9 @@ Then the user should be redirected to the dashboard
 
 ### Sample Test Cases
 
-For reference and testing purposes, sample test cases are provided in the `samples/` folder:
+For reference and testing purposes, sample test cases are provided in the `tests/` folder:
 
-- `samples/saucedemo-samples.test.md`: Comprehensive test cases for the SauceDemo e-commerce website (https://saucedemo.com), including complete purchase flow and product browsing scenarios with detailed step-by-step descriptions.
+- `tests/saucedemo-samples.test.md`: Comprehensive test cases for the SauceDemo e-commerce website (https://saucedemo.com), including complete purchase flow and product browsing scenarios with detailed step-by-step descriptions.
 
 You can use these samples to:
 
