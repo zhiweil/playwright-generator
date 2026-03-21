@@ -117,6 +117,7 @@ export default defineConfig({
       },
       devDependencies: {
         "@playwright/test": "^1.40.0",
+        "@types/node": "^20.11.0",
       },
       keywords: ["playwright", "testing", "automation"],
       author: "",
@@ -128,6 +129,28 @@ export default defineConfig({
       JSON.stringify(packageJson, null, 2),
     );
     console.log(chalk.green("✓ Created package.json"));
+
+    // Add tsconfig so process/types are recognized in playwright.config.ts
+    const tsconfig = {
+      compilerOptions: {
+        target: "ES2020",
+        module: "CommonJS",
+        lib: ["ES2020", "DOM"],
+        strict: true,
+        esModuleInterop: true,
+        forceConsistentCasingInFileNames: true,
+        skipLibCheck: true,
+        moduleResolution: "node",
+        types: ["node", "playwright/test"],
+      },
+      include: ["**/*.ts"],
+    };
+
+    await fs.writeFile(
+      path.join(projectRoot, "tsconfig.json"),
+      JSON.stringify(tsconfig, null, 2),
+    );
+    console.log(chalk.green("✓ Created tsconfig.json"));
 
     // Create example test case
     const exampleTestCase = `# [TC-0001] [SMOKE] [LOGIN]

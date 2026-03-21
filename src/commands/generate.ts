@@ -38,6 +38,14 @@ export async function generateTestCode(
     const testsDir = path.join(projectRoot, "tests");
     const generatedDir = path.join(projectRoot, "generated");
 
+    // Ensure unique test case IDs across all test files
+    const duplicateIds = await findDuplicateTestCaseIds(testsDir);
+    if (duplicateIds.length > 0) {
+      throw new Error(
+        `Duplicate test case ID(s) found across test files: ${duplicateIds.join(", ")}. Please ensure each [TC-xxxx] is unique.`,
+      );
+    }
+
     // Ensure generated directory exists
     await fs.ensureDir(generatedDir);
 
@@ -130,10 +138,44 @@ async function findTestCaseFile(
   }
 }
 
+async function findDuplicateTestCaseIds(testsDir: string): Promise<string[]> {
+  const files = await glob(path.join(testsDir, "**/*.test.md"));
+  const idMap: Record<string, number> = {};
+  const idRegex = /\[TC-[A-Z0-9_-]+\]/gi;
+
+  for (const file of files) {
+    const content = await fs.readFile(file, "utf-8");
+    const matches = content.match(idRegex) || [];
+
+    for (const match of matches) {
+      const normalizedId = match.trim().slice(1, -1);
+      idMap[normalizedId] = (idMap[normalizedId] || 0) + 1;
+    }
+  }
+
+  return Object.keys(idMap).filter((id) => idMap[id] > 1);
+}
+
 function extractTags(testCaseContent: string): string[] {
   const tagRegex = /\[([A-Z0-9\-]+)\]/g;
   const matches = testCaseContent.match(tagRegex) || [];
   return matches.map((tag) => tag.slice(1, -1)).filter((tag) => tag.length > 0);
+}
+
+function extractTypeScriptCode(raw: string): string {
+  const fenceRegex = /```(?:ts|typescript)?\s*\n([\s\S]*?)\n```/i;
+  const fenceMatch = raw.match(fenceRegex);
+
+  if (fenceMatch && fenceMatch[1]?.trim()) {
+    return fenceMatch[1].trim();
+  }
+
+  const testIndex = raw.indexOf("test(");
+  if (testIndex !== -1) {
+    return raw.slice(testIndex).trim();
+  }
+
+  return raw.trim();
 }
 
 async function appendTestCodeToFile(
@@ -141,6 +183,7 @@ async function appendTestCodeToFile(
   generatedCode: string,
   testCaseId: string,
 ): Promise<void> {
+  const code = extractTypeScriptCode(generatedCode);
   let currentContent = await fs.readFile(filePath, "utf-8");
 
   // Check if test case already exists
@@ -151,15 +194,14 @@ async function appendTestCodeToFile(
 
   if (testCaseRegex.test(currentContent)) {
     // Replace existing test case
-    const updatedContent = currentContent.replace(testCaseRegex, generatedCode);
+    const updatedContent = currentContent.replace(testCaseRegex, code);
     await fs.writeFile(filePath, updatedContent);
   } else {
     // Append new test case
-    const code = generatedCode.trim();
-    if (!currentContent.endsWith("\\n\\n")) {
-      currentContent += "\\n\\n";
+    if (!currentContent.endsWith("\n\n")) {
+      currentContent += "\n\n";
     }
-    currentContent += code + "\\n";
+    currentContent += code + "\n";
     await fs.writeFile(filePath, currentContent);
   }
 }
