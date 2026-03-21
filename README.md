@@ -74,7 +74,7 @@ The installed module will have amazing features to facilitate your day-to-day te
 - **Git**: For version control integration
 - **LLM API Access** (optional): Depending on your AI model choice
   - Copilot: GitHub Copilot API credentials
-  - Claude: Anthropic API key
+  - Claude: Anthropic API key with Claude access enabled (visit https://console.anthropic.com/)
 
 ## Installation & Quick Start
 
@@ -310,14 +310,14 @@ Workflow file location: `.github/workflows/playwright-tests.yml`
 
 **Common Issues**:
 
-| Issue                               | Solution                                                                                                                                            |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `API key not found`                 | Verify `.env` file exists and `COPILOT_API_KEY` or `CLAUDE_API_KEY` is set                                                                          |
-| `Claude API connection failed`      | Check `CLAUDE_API_KEY` is valid and account has Claude API access; ensure key starts with `sk-ant-`. Uses Claude 3 Haiku which is widely available. |
-| `Tests timing out`                  | Increase `TIMEOUT` in `.env` or use explicit waits in test cases                                                                                    |
-| `Generated code doesn't compile`    | Review the natural language description for clarity; regenerate with a refined prompt                                                               |
-| `Tests pass locally but fail in CI` | Check `BASE_URL` environment variable and add debugging with screenshots                                                                            |
-| `Selector not found`                | Ensure selectors are unique and reference current UI state                                                                                          |
+| Issue                               | Solution                                                                                                                                                                                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `API key not found`                 | Verify `.env` file exists and `COPILOT_API_KEY` or `CLAUDE_API_KEY` is set                                                                                                                                                                             |
+| `Claude API connection failed`      | Check `CLAUDE_API_KEY` is valid and account has Claude API access; ensure key starts with `sk-ant-`. Visit https://console.anthropic.com/ to enable Claude API. Uses Claude 3 Haiku which is widely available. If issues persist, try Copilot instead. |
+| `Tests timing out`                  | Increase `TIMEOUT` in `.env` or use explicit waits in test cases                                                                                                                                                                                       |
+| `Generated code doesn't compile`    | Review the natural language description for clarity; regenerate with a refined prompt                                                                                                                                                                  |
+| `Tests pass locally but fail in CI` | Check `BASE_URL` environment variable and add debugging with screenshots                                                                                                                                                                               |
+| `Selector not found`                | Ensure selectors are unique and reference current UI state                                                                                                                                                                                             |
 
 ### GitHub Integration
 

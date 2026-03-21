@@ -23,7 +23,7 @@ export class ClaudeProvider extends LLMProvider {
       const response = await axios.post(
         this.baseUrl,
         {
-          model: "claude-3-haiku-20240307",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 100,
           messages: [
             {
@@ -36,7 +36,6 @@ export class ClaudeProvider extends LLMProvider {
           headers: {
             "x-api-key": this.apiKey,
             "anthropic-version": "2023-06-01",
-            "anthropic-beta": "messages-2023-12-15",
             "Content-Type": "application/json",
           },
           timeout: 5000,
@@ -45,10 +44,19 @@ export class ClaudeProvider extends LLMProvider {
       return response.status === 200;
     } catch (error: any) {
       if (error.response) {
-        console.error(
-          `Claude connection validation failed with status ${error.response.status}:`,
-          error.response.data,
-        );
+        if (
+          error.response.status === 404 &&
+          error.response.data?.error?.type === "not_found_error"
+        ) {
+          console.error(
+            `Claude connection validation failed: Model not available. Your Anthropic account may not have access to Claude models. Please check https://console.anthropic.com/`,
+          );
+        } else {
+          console.error(
+            `Claude connection validation failed with status ${error.response.status}:`,
+            error.response.data,
+          );
+        }
       } else {
         console.error("Claude connection validation failed:", error.message);
       }
@@ -63,7 +71,7 @@ export class ClaudeProvider extends LLMProvider {
       const response = await axios.post(
         this.baseUrl,
         {
-          model: "claude-3-haiku-20240307",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 2000,
           messages: [
             {
@@ -76,7 +84,6 @@ export class ClaudeProvider extends LLMProvider {
           headers: {
             "x-api-key": this.apiKey,
             "anthropic-version": "2023-06-01",
-            "anthropic-beta": "messages-2023-12-15",
             "Content-Type": "application/json",
           },
           timeout: 30000,
@@ -99,6 +106,19 @@ export class ClaudeProvider extends LLMProvider {
       const errorMessage = error.response
         ? `HTTP ${error.response.status}: ${error.response.data?.error?.message || error.response.data}`
         : error.message;
+
+      if (
+        error.response?.status === 404 &&
+        error.response.data?.error?.type === "not_found_error"
+      ) {
+        throw new Error(
+          `Failed to generate code with Claude: Model not available. ` +
+            `Your Anthropic account may not have access to Claude models. ` +
+            `Please check your account at https://console.anthropic.com/ and ensure Claude API access is enabled. ` +
+            `Alternatively, try using Copilot: set AI_MODEL=copilot in your .env file.`,
+        );
+      }
+
       throw new Error(`Failed to generate code with Claude: ${errorMessage}`);
     }
   }
