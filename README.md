@@ -110,6 +110,8 @@ The installed module will have amazing features to facilitate your day-to-day te
 project-root/
 ├── tests/                    # Natural language test cases
 │   └── *.test.md
+├── samples/                  # Sample test cases for reference
+│   └── *.test.md
 ├── generated/                # Generated Playwright test code
 │   └── generated.test.ts
 ├── page-objects/             # Page Object Models (optional)
@@ -166,6 +168,24 @@ Given the user is on the login page
 When the user enters valid username and password
 And clicks the login button
 Then the user should be redirected to the dashboard
+```
+
+### Sample Test Cases
+
+For reference and testing purposes, sample test cases are provided in the `samples/` folder:
+
+- `samples/saucedemo-samples.test.md`: Comprehensive test cases for the SauceDemo e-commerce website (https://saucedemo.com), including complete purchase flow and product browsing scenarios with detailed step-by-step descriptions.
+
+You can use these samples to:
+
+1. Test the generator with real-world e-commerce scenarios
+2. Understand the level of detail needed in natural language descriptions
+3. Generate Playwright code for immediate use and validation
+
+To generate code from a sample test case:
+
+```bash
+npx playwright-generator generate --tc TC-SAMPLE-0001
 ```
 
 ### Generation

@@ -1,0 +1,103 @@
+# SauceDemo Sample Test Cases
+
+This file contains sample natural language test cases for the SauceDemo e-commerce website (https://saucedemo.com). These test cases demonstrate comprehensive testing scenarios with detailed step-by-step descriptions.
+
+## Test Case: Complete Purchase Flow
+
+[TC-SAMPLE-0001] [SMOKE] [PURCHASE] [END-TO-END]
+Complete e-commerce purchase flow from login to order confirmation
+
+Given the user navigates to the SauceDemo login page at https://saucedemo.com
+When the user enters "standard_user" as the username
+And the user enters "secret_sauce" as the password
+And the user clicks the "Login" button
+Then the user should be redirected to the products page
+And the page title should contain "Products"
+
+When the user clicks on the "Sauce Labs Backpack" product
+Then the product details page should open
+And the product name should be "Sauce Labs Backpack"
+And the product price should be displayed
+
+When the user clicks the "Add to Cart" button
+Then the cart icon should show "1" item
+And the "Add to Cart" button should change to "Remove"
+
+When the user clicks the cart icon in the top right
+Then the cart page should open
+And the "Sauce Labs Backpack" should be listed in the cart
+And the quantity should be 1
+And the price should match the product page
+
+When the user clicks the "Checkout" button
+Then the checkout information page should open
+
+When the user enters "John" as the first name
+And the user enters "Doe" as the last name
+And the user enters "12345" as the zip code
+And the user clicks the "Continue" button
+Then the checkout overview page should open
+And the item total should be calculated correctly
+And the tax should be applied
+And the total amount should be displayed
+
+When the user clicks the "Finish" button
+Then the order confirmation page should open
+And a success message "Thank you for your order!" should be displayed
+And the order number should be shown
+
+## Test Case: Product Browsing and Cart Management
+
+[TC-SAMPLE-0002] [REGRESSION] [BROWSING] [CART]
+Browse products, sort items, and manage cart contents
+
+Given the user is logged in to SauceDemo with valid credentials
+When the user is on the products page
+Then all products should be displayed in a grid layout
+And each product should show name, price, and "Add to Cart" button
+
+When the user clicks the sort dropdown
+Then sorting options should be displayed: Name (A to Z), Name (Z to A), Price (low to high), Price (high to low)
+
+When the user selects "Name (A to Z)" from the sort dropdown
+Then products should be sorted alphabetically by name in ascending order
+And the first product should be "Sauce Labs Backpack"
+
+When the user selects "Name (Z to A)" from the sort dropdown
+Then products should be sorted alphabetically by name in descending order
+And the first product should be "Test.allTheThings() T-Shirt (Red)"
+
+When the user selects "Price (low to high)" from the sort dropdown
+Then products should be sorted by price in ascending order
+And the first product should be the cheapest item
+
+When the user selects "Price (high to low)" from the sort dropdown
+Then products should be sorted by price in descending order
+And the first product should be the most expensive item
+
+When the user clicks "Add to Cart" on the first product in the sorted list
+Then the cart icon should update to show "1"
+And that product's button should change to "Remove"
+
+When the user clicks "Add to Cart" on the second product in the sorted list
+Then the cart icon should update to show "2"
+And both products' buttons should show "Remove"
+
+When the user clicks the cart icon
+Then the cart page should open
+And both selected products should be listed
+And the quantities should be 1 for each
+And the total price should be the sum of both items
+
+When the user clicks "Remove" next to the first product
+Then that product should be removed from the cart
+And the cart should show only the second product
+And the cart icon should show "1"
+
+When the user clicks "Continue Shopping"
+Then the user should return to the products page
+And the cart icon should still show "1"
+
+When the user clicks the cart icon again
+Then the cart should still contain the remaining product
+And the user can proceed with checkout if desired
