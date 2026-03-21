@@ -23,7 +23,7 @@ export class ClaudeProvider extends LLMProvider {
       const response = await axios.post(
         this.baseUrl,
         {
-          model: "claude-3-haiku-20240307",
+          model: "claude-3-5-sonnet-20241022",
           max_tokens: 100,
           messages: [
             {
@@ -63,7 +63,7 @@ export class ClaudeProvider extends LLMProvider {
       const response = await axios.post(
         this.baseUrl,
         {
-          model: "claude-3-haiku-20240307",
+          model: "claude-3-5-sonnet-20241022",
           max_tokens: 2000,
           messages: [
             {
