@@ -238,8 +238,17 @@ async function appendTestCodeToFile(
   generatedCode: string,
   testCaseId: string,
 ): Promise<void> {
-  const code = extractTypeScriptCode(generatedCode);
+  let code = extractTypeScriptCode(generatedCode);
   let currentContent = await fs.readFile(filePath, "utf-8");
+
+  const playwrightImport = "import { test, expect } from '@playwright/test';";
+  if (currentContent.includes(playwrightImport)) {
+    code = code
+      .split("\n")
+      .filter((line) => line.trim() !== playwrightImport)
+      .join("\n")
+      .trim();
+  }
 
   // Remove all existing occurrences of this test case ID to make latest output win.
   while (true) {
