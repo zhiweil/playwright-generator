@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import path from "path";
 import { initializeProject } from "./commands/init";
 import { generateTestCode } from "./commands/generate";
 import chalk from "chalk";
@@ -11,7 +10,7 @@ const program = new Command();
 program
   .name("playwright-generator")
   .description("Generate Playwright test cases from natural language using LLM")
-  .version("1.0.17");
+  .version("1.0.18");
 
 // Init command
 program

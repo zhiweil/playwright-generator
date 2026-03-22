@@ -241,59 +241,37 @@ async function appendTestCodeToFile(
   const code = extractTypeScriptCode(generatedCode);
   let currentContent = await fs.readFile(filePath, "utf-8");
 
-  // Check if test case already exists by looking for the test case ID in test names
-  const testCaseRegex = new RegExp(`test\\([^)]*${testCaseId}[^)]*\\)`, "g");
-  const existingTests = currentContent.match(testCaseRegex);
+  // Remove all existing occurrences of this test case ID to make latest output win.
+  while (true) {
+    const idIndex = currentContent.indexOf(testCaseId);
+    if (idIndex === -1) break;
 
-  if (existingTests && existingTests.length > 0) {
-    // Find the start of the existing test function
-    const testStartPattern = `test('`;
-    let searchStart = 0;
-    let testFunctionStart = -1;
-
-    // Find the test function that contains our test case ID
-    while (
-      (testFunctionStart = currentContent.indexOf(
-        testStartPattern,
-        searchStart,
-      )) !== -1
-    ) {
-      const testFunctionSnippet = currentContent.substring(
-        testFunctionStart,
-        testFunctionStart + 200,
-      ); // Look ahead
-      if (testFunctionSnippet.includes(testCaseId)) {
-        break;
-      }
-      searchStart = testFunctionStart + 1;
+    // Find beginning of enclosing test block
+    const startIndex = currentContent.lastIndexOf("test(", idIndex);
+    if (startIndex === -1) {
+      // If we can't find enclosing test block, remove just the literal ID and continue.
+      currentContent =
+        currentContent.slice(0, idIndex) +
+        currentContent.slice(idIndex + testCaseId.length);
+      continue;
     }
 
-    if (testFunctionStart !== -1) {
-      // Find the end of this test function (next test function or end of file)
-      const nextTestIndex = currentContent.indexOf(
-        "test(",
-        testFunctionStart + 1,
-      );
-      const testFunctionEnd =
-        nextTestIndex !== -1 ? nextTestIndex : currentContent.length;
+    // Determine end of enclosing test block (next `test(` or end of file)
+    const nextTestIndex = currentContent.indexOf("test(", startIndex + 1);
+    const endIndex =
+      nextTestIndex !== -1 ? nextTestIndex : currentContent.length;
 
-      // Replace the existing test function
-      const beforeFunction = currentContent.substring(0, testFunctionStart);
-      const afterFunction = currentContent.substring(testFunctionEnd);
-      const updatedContent =
-        beforeFunction +
-        code +
-        (nextTestIndex !== -1 ? "\n\n" : "\n") +
-        afterFunction.trim();
-      await fs.writeFile(filePath, updatedContent);
-      return;
-    }
+    currentContent =
+      currentContent.slice(0, startIndex).trimEnd() +
+      "\n\n" +
+      currentContent.slice(endIndex).trimStart();
   }
 
-  // Append new test case if not found or replacement failed
+  // Append latest code
   if (!currentContent.endsWith("\n\n")) {
     currentContent += "\n\n";
   }
   currentContent += code + "\n";
+
   await fs.writeFile(filePath, currentContent);
 }

@@ -1,7 +1,6 @@
 import path from "path";
 import fs from "fs-extra";
 import chalk from "chalk";
-import configManager from "../config";
 
 export async function initializeProject(projectPath: string): Promise<void> {
   const projectRoot = path.resolve(projectPath);
@@ -369,6 +368,12 @@ When the user clicks the cart icon again
 Then the cart should still contain the remaining product
 And the user can proceed with checkout if desired
 `;
+
+    await fs.writeFile(
+      path.join(projectRoot, "tests", "saucedemo-samples.test.md"),
+      saucedemoSampleContent,
+    );
+    console.log(chalk.green("✓ Created SauceDemo sample test cases"));
 
     // Create GitHub Actions workflow
     const workflow = `name: Playwright Tests
