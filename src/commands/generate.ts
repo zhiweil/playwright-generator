@@ -163,18 +163,59 @@ function extractTags(testCaseContent: string): string[] {
 }
 
 function extractTypeScriptCode(raw: string): string {
-  const fenceRegex = /```(?:ts|typescript)?\s*\n([\s\S]*?)\n```/i;
-  const fenceMatch = raw.match(fenceRegex);
+  // First, try to extract from fenced code blocks
+  const fenceRegex = /```(?:ts|typescript|javascript)?\s*\n([\s\S]*?)\n```/gi;
+  const fenceMatches = [...raw.matchAll(fenceRegex)];
 
-  if (fenceMatch && fenceMatch[1]?.trim()) {
-    return fenceMatch[1].trim();
+  if (fenceMatches.length > 0) {
+    // Return the last code block (in case there are multiple)
+    const lastMatch = fenceMatches[fenceMatches.length - 1];
+    if (lastMatch[1]?.trim()) {
+      return lastMatch[1].trim();
+    }
   }
 
+  // If no fenced blocks, look for test function
   const testIndex = raw.indexOf("test(");
   if (testIndex !== -1) {
+    // Find the end of the test function by counting braces
+    let braceCount = 0;
+    let inString = false;
+    let stringChar = "";
+    let endIndex = -1;
+
+    for (let i = testIndex; i < raw.length; i++) {
+      const char = raw[i];
+
+      // Handle strings
+      if (!inString && (char === '"' || char === "'" || char === "`")) {
+        inString = true;
+        stringChar = char;
+      } else if (inString && char === stringChar && raw[i - 1] !== "\\") {
+        inString = false;
+        stringChar = "";
+      } else if (!inString) {
+        if (char === "{") {
+          braceCount++;
+        } else if (char === "}") {
+          braceCount--;
+          if (braceCount === 0) {
+            endIndex = i + 1; // Include the closing brace
+            break;
+          }
+        }
+      }
+    }
+
+    if (endIndex !== -1) {
+      return raw.slice(testIndex, endIndex).trim();
+    }
+
+    // Fallback: return from test( to end if brace matching fails
     return raw.slice(testIndex).trim();
   }
 
+  // Last resort: return the entire input trimmed
   return raw.trim();
 }
 
@@ -187,21 +228,66 @@ async function appendTestCodeToFile(
   let currentContent = await fs.readFile(filePath, "utf-8");
 
   // Check if test case already exists
-  const testCaseRegex = new RegExp(
-    `test\\(['\`"].*?${testCaseId}.*?['\`"].*?\\)\\s*=>\\s*{[^}]*}`,
-    "s",
-  );
+  const testStartPattern = `test('`;
+  const testCaseIdPattern = testCaseId;
+  const testStartIndex = currentContent.indexOf(testStartPattern);
 
-  if (testCaseRegex.test(currentContent)) {
-    // Replace existing test case
-    const updatedContent = currentContent.replace(testCaseRegex, code);
-    await fs.writeFile(filePath, updatedContent);
-  } else {
-    // Append new test case
-    if (!currentContent.endsWith("\n\n")) {
-      currentContent += "\n\n";
+  if (testStartIndex !== -1 && currentContent.includes(testCaseId)) {
+    // Find the start of the test function
+    const testFunctionStart = currentContent.lastIndexOf(
+      "test(",
+      testStartIndex + currentContent.indexOf(testCaseId, testStartIndex),
+    );
+
+    if (testFunctionStart !== -1) {
+      // Find the matching closing brace by counting braces
+      let braceCount = 0;
+      let inString = false;
+      let stringChar = "";
+      let testFunctionEnd = -1;
+
+      for (let i = testFunctionStart; i < currentContent.length; i++) {
+        const char = currentContent[i];
+
+        // Handle strings
+        if (!inString && (char === '"' || char === "'")) {
+          inString = true;
+          stringChar = char;
+        } else if (
+          inString &&
+          char === stringChar &&
+          currentContent[i - 1] !== "\\"
+        ) {
+          inString = false;
+          stringChar = "";
+        } else if (!inString) {
+          if (char === "{") {
+            braceCount++;
+          } else if (char === "}") {
+            braceCount--;
+            if (braceCount === 0) {
+              testFunctionEnd = i + 1; // Include the closing brace
+              break;
+            }
+          }
+        }
+      }
+
+      if (testFunctionEnd !== -1) {
+        // Replace the existing test function
+        const beforeFunction = currentContent.substring(0, testFunctionStart);
+        const afterFunction = currentContent.substring(testFunctionEnd);
+        const updatedContent = beforeFunction + code + afterFunction;
+        await fs.writeFile(filePath, updatedContent);
+        return;
+      }
     }
-    currentContent += code + "\n";
-    await fs.writeFile(filePath, currentContent);
   }
+
+  // Append new test case if not found or replacement failed
+  if (!currentContent.endsWith("\n\n")) {
+    currentContent += "\n\n";
+  }
+  currentContent += code + "\n";
+  await fs.writeFile(filePath, currentContent);
 }
