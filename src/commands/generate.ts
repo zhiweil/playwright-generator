@@ -77,7 +77,13 @@ export async function generateTestCode(
       );
 
       // Read test case content
-      const testCaseContent = await fs.readFile(testCaseFile, "utf-8");
+      const fullFileContent = await fs.readFile(testCaseFile, "utf-8");
+
+      // Extract only the specific test case content
+      const testCaseContent = extractTestCaseContent(
+        fullFileContent,
+        testCaseId,
+      );
 
       // Extract tags
       const tags = extractTags(testCaseContent);
@@ -155,7 +161,49 @@ async function findDuplicateTestCaseIds(testsDir: string): Promise<string[]> {
 
   return Object.keys(idMap).filter((id) => idMap[id] > 1);
 }
+function extractTestCaseContent(
+  fileContent: string,
+  testCaseId: string,
+): string {
+  const lines = fileContent.split("\n");
+  let startIndex = -1;
+  let endIndex = lines.length;
 
+  // Find the line with the test case ID
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes(`[${testCaseId}]`)) {
+      startIndex = i;
+      break;
+    }
+  }
+
+  if (startIndex === -1) {
+    throw new Error(`Test case [${testCaseId}] not found in file`);
+  }
+
+  // Find the start of this test case (previous "## Test Case:" or beginning of file)
+  for (let i = startIndex - 1; i >= 0; i--) {
+    if (lines[i].trim().startsWith("## Test Case:")) {
+      startIndex = i;
+      break;
+    }
+    if (i === 0) {
+      startIndex = 0;
+    }
+  }
+
+  // Find the end of this test case (next "## Test Case:" or end of file)
+  for (let i = startIndex + 1; i < lines.length; i++) {
+    if (lines[i].trim().startsWith("## Test Case:") && i > startIndex) {
+      endIndex = i;
+      break;
+    }
+  }
+
+  // Extract the test case content
+  const testCaseLines = lines.slice(startIndex, endIndex);
+  return testCaseLines.join("\n").trim();
+}
 function extractTags(testCaseContent: string): string[] {
   const tagRegex = /\[([A-Z0-9\-]+)\]/g;
   const matches = testCaseContent.match(tagRegex) || [];
