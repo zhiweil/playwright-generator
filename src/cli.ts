@@ -10,7 +10,7 @@ const program = new Command();
 program
   .name("playwright-generator")
   .description("Generate Playwright test cases from natural language using LLM")
-  .version("1.0.21");
+  .version("1.0.22");
 
 // Init command
 program
