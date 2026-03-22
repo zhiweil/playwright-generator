@@ -210,22 +210,91 @@ function extractTags(testCaseContent: string): string[] {
   return matches.map((tag) => tag.slice(1, -1)).filter((tag) => tag.length > 0);
 }
 
-function extractTypeScriptCode(raw: string): string {
-  // First, try to extract from fenced code blocks
+export function extractTypeScriptCode(raw: string): string {
+  // Try fencing blocks first, picking the longest snippet (best chance of complete function)
   const fenceRegex = /```(?:ts|typescript|javascript)?\s*\n([\s\S]*?)\n```/gi;
   const fenceMatches = [...raw.matchAll(fenceRegex)];
 
   if (fenceMatches.length > 0) {
-    // Return the last code block (in case there are multiple)
-    const lastMatch = fenceMatches[fenceMatches.length - 1];
-    if (lastMatch[1]?.trim()) {
-      return lastMatch[1].trim();
+    const codeBlocks = fenceMatches
+      .map((m) => m[1]?.trim() || "")
+      .filter(Boolean);
+
+    if (codeBlocks.length > 0) {
+      const best = codeBlocks.reduce(
+        (prev, curr) => (curr.length > prev.length ? curr : prev),
+        "",
+      );
+      return best.trim();
     }
   }
 
-  // If no fenced blocks, look for test function and extract everything from there
+  // If no fenced blocks, extract the first complete test() function
   const testIndex = raw.indexOf("test(");
   if (testIndex !== -1) {
+    const arrowIndex = raw.indexOf("=>", testIndex);
+    let bodyStartIndex = raw.indexOf("{", testIndex);
+
+    if (arrowIndex !== -1) {
+      const arrowBodyIndex = raw.indexOf("{", arrowIndex);
+      if (arrowBodyIndex !== -1) {
+        bodyStartIndex = arrowBodyIndex;
+      }
+    }
+
+    if (bodyStartIndex === -1) {
+      return raw.slice(testIndex).trim();
+    }
+
+    let braceCount = 1;
+    let inString = false;
+    let stringChar = "";
+    let escaped = false;
+    let endIndex = -1;
+
+    for (let i = bodyStartIndex + 1; i < raw.length; i++) {
+      const char = raw[i];
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      if (!inString && (char === '"' || char === "'" || char === "`")) {
+        inString = true;
+        stringChar = char;
+        continue;
+      }
+
+      if (inString && char === stringChar) {
+        inString = false;
+        stringChar = "";
+        continue;
+      }
+
+      if (!inString) {
+        if (char === "{") {
+          braceCount++;
+        } else if (char === "}") {
+          braceCount--;
+          if (braceCount === 0) {
+            endIndex = i + 1;
+            break;
+          }
+        }
+      }
+    }
+
+    if (endIndex !== -1) {
+      return raw.slice(testIndex, endIndex).trim();
+    }
+
+    // If brace matching fails, keep raw from test( to end as fallback
     return raw.slice(testIndex).trim();
   }
 

@@ -14,6 +14,7 @@
     "build": "tsc",
     "dev": "ts-node src/cli.ts",
     "start": "node dist/cli.js",
+    "validate:tc0002": "ts-node scripts/validate-tc0002.ts",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
