@@ -175,43 +175,9 @@ function extractTypeScriptCode(raw: string): string {
     }
   }
 
-  // If no fenced blocks, look for test function
+  // If no fenced blocks, look for test function and extract everything from there
   const testIndex = raw.indexOf("test(");
   if (testIndex !== -1) {
-    // Find the end of the test function by counting braces
-    let braceCount = 0;
-    let inString = false;
-    let stringChar = "";
-    let endIndex = -1;
-
-    for (let i = testIndex; i < raw.length; i++) {
-      const char = raw[i];
-
-      // Handle strings
-      if (!inString && (char === '"' || char === "'" || char === "`")) {
-        inString = true;
-        stringChar = char;
-      } else if (inString && char === stringChar && raw[i - 1] !== "\\") {
-        inString = false;
-        stringChar = "";
-      } else if (!inString) {
-        if (char === "{") {
-          braceCount++;
-        } else if (char === "}") {
-          braceCount--;
-          if (braceCount === 0) {
-            endIndex = i + 1; // Include the closing brace
-            break;
-          }
-        }
-      }
-    }
-
-    if (endIndex !== -1) {
-      return raw.slice(testIndex, endIndex).trim();
-    }
-
-    // Fallback: return from test( to end if brace matching fails
     return raw.slice(testIndex).trim();
   }
 
