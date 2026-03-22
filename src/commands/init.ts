@@ -133,13 +133,13 @@ export default defineConfig({
     const tsconfig = {
       compilerOptions: {
         target: "ES2020",
-        module: "CommonJS",
+        module: "nodenext",
         lib: ["ES2020", "DOM"],
         strict: true,
         esModuleInterop: true,
         forceConsistentCasingInFileNames: true,
         skipLibCheck: true,
-        moduleResolution: "node",
+        moduleResolution: "nodenext",
         types: ["node", "playwright/test"],
       },
       include: ["**/*.ts"],
