@@ -90,7 +90,7 @@ The installed module will have amazing features to facilitate your day-to-day te
    npx playwright-generator init
    ```
 
-   Note: `init` now creates a sample test case file at `tests/saucedemo-samples.test.md` by default.
+   Note: `init` now creates `tests/example.test.md` with comprehensive SauceDemo e-commerce test cases by default.
 
 3. **Configure your environment**:
 
@@ -174,7 +174,7 @@ Then the user should be redirected to the dashboard
 
 For reference and testing purposes, sample test cases are provided in the `tests/` folder:
 
-- `tests/saucedemo-samples.test.md`: Comprehensive test cases for the SauceDemo e-commerce website (https://saucedemo.com), including complete purchase flow and product browsing scenarios with detailed step-by-step descriptions.
+- `tests/example.test.md`: Comprehensive test cases for the SauceDemo e-commerce website (https://saucedemo.com), including complete purchase flow and product browsing scenarios with detailed step-by-step descriptions.
 
 You can use these samples to:
 
