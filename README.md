@@ -252,15 +252,10 @@ npm run test:debug -- SMOKE
 npm run test:headed -- SMOKE
 
 # Run tests with specific browser (set BROWSER=chromium|firefox|webkit in .env)
-npm run test:browser
+# and with specific tag
+npm run test:browser -- SMOKE
 
-# Run tests with specific browser and tag
-npm run test:browser:tag -- SMOKE
-
-# Run tests with video recording enabled for failed cases (set VIDEO=on-failure in .env)
-npm run test:video
-
-# Run tests with video recording and a specific tag
+# Run tests with video recording enabled for failed cases (set VIDEO=on-failure in .env) and a specific tag
 npm run test:video -- SMOKE
 
 # Generate HTML report
