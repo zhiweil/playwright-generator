@@ -1,6 +1,6 @@
 {
   "name": "@zhiweiliu/playwright-generator",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "Generate Playwright test cases from natural language using LLM",
   "main": "dist/index.js",
   "bin": {
