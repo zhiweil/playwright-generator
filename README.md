@@ -237,25 +237,32 @@ Various npm scripts are provided to run and debug Playwright test cases.
 
 ```bash
 # Run all tests
-npm test
+npm run test
 
-# Run tests by specific tag
-npm run test:tag -- --tag SMOKE
-
-# Run a specific test case
-npm run test:case -- --tc TC-0001
+# Run tests by tag or test case ID
+npm run test:case -- SMOKE
+npm run test:case -- TC-0001
 
 # Debug mode (opens inspector)
-npm run test:debug -- --tag SMOKE
+npm run test:debug -- SMOKE
 
 # Run tests in headed mode (see browser UI)
 npm run test:headed
 
-# Run tests with specific browser
-npm run test:browser -- --browser firefox
+# Run tests in headed mode with a specific tag
+npm run test:headed -- SMOKE
 
-# Run tests with video recording enabled for failed cases
-npm test -- --video on-failure
+# Run tests with specific browser (set BROWSER=chromium|firefox|webkit in .env)
+npm run test:browser
+
+# Run tests with specific browser and tag
+npm run test:browser:tag -- SMOKE
+
+# Run tests with video recording enabled for failed cases (set VIDEO=on-failure in .env)
+npm run test:video
+
+# Run tests with video recording and a specific tag
+npm run test:video -- SMOKE
 
 # Generate HTML report
 npm run report
