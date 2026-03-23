@@ -103,6 +103,7 @@ export async function generateTestCode(
         outputFilePath,
         generatedCode.code,
         testCaseId,
+        tags,
       );
 
       console.log(chalk.green(`✓ Generated test case: ${testCaseId}`));
@@ -205,9 +206,10 @@ function extractTestCaseContent(
   return testCaseLines.join("\n").trim();
 }
 function extractTags(testCaseContent: string): string[] {
-  const tagRegex = /\[([A-Z0-9\-]+)\]/g;
-  const matches = testCaseContent.match(tagRegex) || [];
-  return matches.map((tag) => tag.slice(1, -1)).filter((tag) => tag.length > 0);
+  const tagLine = testCaseContent.split("\n").find(line => /\[TC-[A-Z0-9_-]+\]/i.test(line)) || "";
+  const tagRegex = /\[([A-Z0-9][A-Z0-9\-]*[A-Z0-9])\]/g;
+  const matches = [...tagLine.matchAll(tagRegex)];
+  return matches.map(m => m[1]).filter(t => t.length > 0);
 }
 
 export function extractTypeScriptCode(raw: string): string {
@@ -306,8 +308,21 @@ async function appendTestCodeToFile(
   filePath: string,
   generatedCode: string,
   testCaseId: string,
+  tags: string[],
 ): Promise<void> {
   let code = extractTypeScriptCode(generatedCode);
+
+  // Enforce all tags in the test title deterministically
+  const tagString = tags.map(t => `[${t}]`).join(' ');
+  code = code.replace(
+    /^(test\s*\(\s*['"`])(.+?)(['"`])/m,
+    (_, open, title, close) => {
+      // Strip any existing bracket tags from the title, then prepend all tags
+      const stripped = title.replace(/\[[A-Z0-9\-]+\]\s*/g, '').trim();
+      return `${open}${tagString} ${stripped}${close}`;
+    }
+  );
+
   let currentContent = await fs.readFile(filePath, "utf-8");
 
   const playwrightImport = "import { test, expect } from '@playwright/test';";

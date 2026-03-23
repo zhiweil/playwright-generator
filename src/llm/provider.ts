@@ -25,12 +25,14 @@ The generated code should:
 - Handle element waits automatically (Playwright auto-waits)
 - Be readable and maintainable
 - Include comments explaining complex steps
-- The test title MUST start with the tags in this exact format: '${tagString} <description>'
+- The test title MUST begin with ALL of the following tags exactly as shown, preserving every tag: ${tagString}
+- Example of correct title format: test('${tagString} Your description here', ...)
+- Do NOT omit any tags. Do NOT add extra tags.
 
 Natural language test case:
 ${prompt.testCase}
 
-Generate ONLY the test function code, without explanations. Use this format:
+Generate ONLY the test function code, without explanations. Use this exact format:
 test('${tagString} Test Description', async ({ page }) => {
   // Your test code here
 });`;
