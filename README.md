@@ -233,6 +233,8 @@ npx playwright-generator generate --tc TC-0001,TC-0002,TC-0003
 
 Various npm scripts are provided to run and debug Playwright test cases.
 
+Since this is essentially a standard Playwright project, nothing prevents you from using the Playwright CLI commands you are already familiar with. The npm scripts below are provided as convenient shortcuts for common tasks, but you can always fall back to running `npx playwright test` directly with any flags you need.
+
 **Available Commands**:
 
 ```bash
