@@ -35,7 +35,7 @@ export class CopilotProvider extends LLMProvider {
 
   async generateTestCode(prompt: LLMPrompt): Promise<GeneratedCode> {
     try {
-      const systemPrompt = this.buildPrompt(prompt.testCase);
+      const systemPrompt = this.buildPrompt(prompt);
 
       const response = await axios.post(
         this.baseUrl,
