@@ -318,10 +318,12 @@ audit/screenshots/*
 
     console.log(chalk.green.bold("\\n✓ Project initialized successfully!"));
     console.log(chalk.cyan("\\nNext steps:"));
-    console.log("1. Edit .env with your API credentials");
+    console.log("1. Install dependencies: npm install");
     console.log("2. Write test cases in the tests/ folder");
-    console.log("3. Run: npx playwright-generator generate --tc TC-0001");
-    console.log("4. Install dependencies: npm install");
+    console.log(
+      "3. Run: npx playwright-generator generate --tc TC-SAMPLE-0001",
+    );
+    console.log("4. Edit .env with your API credentials");
     console.log("5. Run tests: npm test");
   } catch (error) {
     console.error(chalk.red("Error initializing project:"), error);

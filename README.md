@@ -248,9 +248,6 @@ npm run test:case -- TC-0001
 # Debug mode (opens inspector)
 npm run test:debug -- SMOKE
 
-# Run tests in headed mode (see browser UI)
-npm run test:headed
-
 # Run tests in headed mode with a specific tag
 npm run test:headed -- SMOKE
 
