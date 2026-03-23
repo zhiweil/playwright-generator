@@ -56,6 +56,8 @@ VIDEO=retain-on-failure
 
     // Create playwright.config.ts
     const playwrightConfig = `import { defineConfig, devices } from '@playwright/test';
+import { config } from 'dotenv';
+config();
 
 export default defineConfig({
   testDir: './generated',
@@ -102,7 +104,7 @@ export default defineConfig({
       scripts: {
         test: "playwright test",
         "test:case": "playwright test --grep",
-        "test:debug": "playwright test --debug --grep",
+        "test:debug": "playwright test --debug --project=chromium --grep",
         "test:headed": "playwright test --headed --grep",
         "test:browser": "playwright test",
         "test:browser:tag": "playwright test --grep",
@@ -112,6 +114,7 @@ export default defineConfig({
       devDependencies: {
         "@playwright/test": "^1.40.0",
         "@types/node": "^20.11.0",
+        "dotenv": "^16.3.1",
       },
       keywords: ["playwright", "testing", "automation"],
       author: "",
