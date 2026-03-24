@@ -17,7 +17,7 @@ export class ChatGPTProvider extends LLMProvider {
     try {
       const response = await axios.post(
         this.baseUrl,
-        { model: this.model, messages: [{ role: "user", content: "test" }], max_tokens: 10 },
+        { model: this.model, messages: [{ role: "user", content: "test" }], max_completion_tokens: 10 },
         { headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" }, timeout: 5000 },
       );
       return response.status === 200;
@@ -34,7 +34,7 @@ export class ChatGPTProvider extends LLMProvider {
         {
           model: this.model,
           messages: [{ role: "user", content: this.buildPrompt(prompt) }],
-          max_tokens: 2000,
+          max_completion_tokens: 2000,
           temperature: 0.2,
         },
         {
