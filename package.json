@@ -33,11 +33,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/playwright-generator.git"
+    "url": "https://github.com/zhiweil/playwright-generator.git"
   },
-  "homepage": "https://github.com/yourusername/playwright-generator#readme",
+  "homepage": "https://github.com/zhiweil/playwright-generator#readme",
   "bugs": {
-    "url": "https://github.com/yourusername/playwright-generator/issues"
+    "url": "https://github.com/zhiweil/playwright-generator/issues"
   },
   "dependencies": {
     "axios": "^1.6.0",

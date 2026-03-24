@@ -36,6 +36,8 @@ AZURE_OPENAI_API_KEY=               # Required if using Azure OpenAI
 AZURE_OPENAI_ENDPOINT=              # e.g. https://<resource>.openai.azure.com
 AZURE_OPENAI_DEPLOYMENT=            # e.g. gpt-4o
 AZURE_OPENAI_API_VERSION=2024-02-01 # Optional, defaults to 2024-02-01
+CHATGPT_API_KEY=                    # Required if using ChatGPT (starts with sk-)
+CHATGPT_MODEL=gpt-4o                # Optional, defaults to gpt-4o
 
 # Playwright Configuration
 BROWSER=chromium

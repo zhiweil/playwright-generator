@@ -10,7 +10,7 @@ const program = new Command();
 program
   .name("playwright-generator")
   .description("Generate Playwright test cases from natural language using LLM")
-  .version("1.0.29");
+  .version("1.0.30");
 
 // Init command
 program
@@ -35,7 +35,7 @@ program
   )
   .option(
     "-m, --model <model>",
-    "LLM model to use (claude or azure-openai)",
+    "LLM model to use (claude, azure-openai or chatgpt)",
     "claude",
   )
   .option(
