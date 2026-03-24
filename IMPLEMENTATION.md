@@ -15,7 +15,7 @@ playwright-generator/
 │   │   └── generate.ts        # Test code generation command
 │   └── llm/
 │       ├── provider.ts        # Abstract LLM provider base class
-│       ├── copilot.ts         # GitHub Copilot integration
+│       ├── azure-openai.ts    # Azure OpenAI integration
 │       ├── claude.ts          # Anthropic Claude integration
 │       └── index.ts           # LLM factory for provider instantiation
 ├── dist/                      # Compiled TypeScript (generated)
@@ -61,7 +61,7 @@ Creates a complete test project structure with:
 ### 4. **LLM Integration Layer** (`llm/`)
 
 - **Abstract Provider** (`provider.ts`): Base class defining LLM interface
-- **Copilot Provider** (`copilot.ts`): GitHub Copilot API integration
+- **Azure OpenAI Provider** (`azure-openai.ts`): Azure OpenAI API integration
 - **Claude Provider** (`claude.ts`): Anthropic Claude API integration
 - **LLM Factory** (`index.ts`): Creates appropriate provider based on config
 
@@ -124,11 +124,12 @@ my-test-project/
 
 ```bash
 # Edit the .env file
-COPILOT_API_KEY=your_key_here
-# or
 CLAUDE_API_KEY=your_key_here
+AZURE_OPENAI_API_KEY=your_key_here
+AZURE_OPENAI_ENDPOINT=https://<resource>.openai.azure.com
+AZURE_OPENAI_DEPLOYMENT=gpt-4o
 
-AI_MODEL=copilot  # or 'claude'
+AI_MODEL=claude  # or 'azure-openai'
 BASE_URL=http://localhost:3000
 BROWSER=chromium
 HEADLESS=true
@@ -196,7 +197,7 @@ npm run report
 
 ✅ **Dual LLM Support**
 
-- GitHub Copilot integration
+- GitHub Actions integration
 - Anthropic Claude integration
 - Easy switching between models
 
@@ -287,7 +288,7 @@ If you encounter issues:
 - `src/commands/init.ts` - Init command
 - `src/commands/generate.ts` - Generate command
 - `src/llm/provider.ts` - LLM base class
-- `src/llm/copilot.ts` - Copilot provider
+- `src/llm/azure-openai.ts` - Azure OpenAI provider
 - `src/llm/claude.ts` - Claude provider
 - `src/llm/index.ts` - LLM factory
 

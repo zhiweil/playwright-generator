@@ -42,7 +42,7 @@ src/
 │   └── generate.ts        # Generate test code
 └── llm/
     ├── provider.ts        # Abstract base class
-    ├── copilot.ts         # Copilot API client
+    ├── azure-openai.ts    # Azure OpenAI API client
     ├── claude.ts          # Claude API client
     └── index.ts           # Factory pattern
 ```
@@ -60,7 +60,7 @@ abstract class LLMProvider
   └── validateConnection(): Promise<boolean>
 
 // Implementations
-├── CopilotProvider (extends LLMProvider)
+├── AzureOpenAIProvider (extends LLMProvider)
 └── ClaudeProvider (extends LLMProvider)
 
 // Factory
@@ -71,7 +71,7 @@ LLMFactory.createProvider(): LLMProvider
 
 ```typescript
 ConfigManager.getInstance().getConfig()
-  ├── aiModel: 'copilot' | 'claude'
+  ├── aiModel: 'claude' | 'azure-openai'
   ├── apiKeys
   ├── playwrightSettings
   └── executionConfig
@@ -244,7 +244,7 @@ describe("Full workflow", () => {
 
 Keep in mind when adding features:
 
-- Copilot API may have rate limits
+- Azure OpenAI API has token limits
 - Claude API has token limits
 - Consider caching generated code
 - Implement retry logic with exponential backoff
@@ -352,7 +352,7 @@ node dist/cli.js --version
 
 ```bash
 # Check environment variables
-echo $COPILOT_API_KEY
+echo $CLAUDE_API_KEY
 
 # Verify in .env
 cat .env

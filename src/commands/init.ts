@@ -30,9 +30,12 @@ export async function initializeProject(projectPath: string): Promise<void> {
 
     // Copy .env.example to project
     const envExampleContent = `# AI Model Configuration
-AI_MODEL=copilot
-COPILOT_API_KEY=
-CLAUDE_API_KEY=
+AI_MODEL=claude                     # Options: claude, azure-openai
+CLAUDE_API_KEY=                     # Required if using Claude (starts with sk-ant-)
+AZURE_OPENAI_API_KEY=               # Required if using Azure OpenAI
+AZURE_OPENAI_ENDPOINT=              # e.g. https://<resource>.openai.azure.com
+AZURE_OPENAI_DEPLOYMENT=            # e.g. gpt-4o
+AZURE_OPENAI_API_VERSION=2024-02-01 # Optional, defaults to 2024-02-01
 
 # Playwright Configuration
 BROWSER=chromium

@@ -12,7 +12,7 @@ A complete npm CLI tool (`@zhiweiliu/playwright-generator`) that:
 
 - ✅ Initializes new Playwright test projects with full scaffolding
 - ✅ Generates Playwright test code from natural language test cases
-- ✅ Integrates with multiple LLM providers (Copilot, Claude)
+- ✅ Integrates with multiple LLM providers (Claude, Azure OpenAI)
 - ✅ Manages project configuration and environment variables
 - ✅ Provides comprehensive CLI help and documentation
 
@@ -27,7 +27,7 @@ A complete npm CLI tool (`@zhiweiliu/playwright-generator`) that:
 **LLM Integration** (4 files)
 
 - `src/llm/provider.ts` - Abstract LLM provider base class
-- `src/llm/copilot.ts` - GitHub Copilot API client
+- `src/llm/azure-openai.ts` - Azure OpenAI API client
 - `src/llm/claude.ts` - Anthropic Claude API client
 - `src/llm/index.ts` - LLM factory for provider creation
 
@@ -57,8 +57,8 @@ A complete npm CLI tool (`@zhiweiliu/playwright-generator`) that:
 ### 1. **Dual LLM Support**
 
 ```
-✅ GitHub Copilot (default)
 ✅ Anthropic Claude
+✅ Azure OpenAI
 ✅ Easy model switching via config
 ✅ API key management
 ```
@@ -143,7 +143,7 @@ playwright-generator/
 │   │   └── generate.ts             # Generate tests
 │   └── llm/
 │       ├── provider.ts             # Abstract provider
-│       ├── copilot.ts              # Copilot client
+│       ├── azure-openai.ts         # Azure OpenAI client
 │       ├── claude.ts               # Claude client
 │       └── index.ts                # Factory
 ├── dist/                            # Compiled JavaScript (ready to use)
@@ -356,7 +356,7 @@ Extensibility:       ✅ Pattern-based architecture
 - `src/commands/init.ts` - Init command
 - `src/commands/generate.ts` - Generate command
 - `src/llm/provider.ts` - LLM base class
-- `src/llm/copilot.ts` - Copilot provider
+- `src/llm/azure-openai.ts` - Azure OpenAI provider
 - `src/llm/claude.ts` - Claude provider
 - `src/llm/index.ts` - LLM factory
 - `dist/` - Compiled output (9 files)

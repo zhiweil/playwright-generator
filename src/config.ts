@@ -6,9 +6,12 @@ import fs from "fs";
 dotenv.config();
 
 export interface Config {
-  aiModel: "copilot" | "claude";
-  copilotApiKey?: string;
+  aiModel: "claude" | "azure-openai";
   claudeApiKey?: string;
+  azureOpenAIApiKey?: string;
+  azureOpenAIEndpoint?: string;
+  azureOpenAIDeployment?: string;
+  azureOpenAIApiVersion?: string;
   browser: "chromium" | "firefox" | "webkit";
   headless: boolean;
   baseUrl: string;
@@ -33,9 +36,12 @@ export class ConfigManager {
 
   private loadConfig(): Config {
     return {
-      aiModel: (process.env.AI_MODEL as "copilot" | "claude") || "copilot",
-      copilotApiKey: process.env.COPILOT_API_KEY,
+      aiModel: (process.env.AI_MODEL as "claude" | "azure-openai") || "claude",
       claudeApiKey: process.env.CLAUDE_API_KEY,
+      azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
+      azureOpenAIEndpoint: process.env.AZURE_OPENAI_ENDPOINT,
+      azureOpenAIDeployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+      azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION || "2024-02-01",
       browser:
         (process.env.BROWSER as "chromium" | "firefox" | "webkit") ||
         "chromium",
@@ -51,14 +57,14 @@ export class ConfigManager {
   }
 
   validateConfig(): boolean {
-    const { aiModel, copilotApiKey, claudeApiKey } = this.config;
+    const { aiModel, claudeApiKey, azureOpenAIApiKey, azureOpenAIEndpoint, azureOpenAIDeployment } = this.config;
 
-    if (aiModel === "copilot" && !copilotApiKey) {
-      throw new Error("COPILOT_API_KEY is required when using Copilot model");
-    }
-
-    if (aiModel === "claude" && !claudeApiKey) {
-      throw new Error("CLAUDE_API_KEY is required when using Claude model");
+    if (aiModel === "azure-openai") {
+      if (!azureOpenAIApiKey || !azureOpenAIEndpoint || !azureOpenAIDeployment) {
+        throw new Error("AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_DEPLOYMENT are required when using Azure OpenAI");
+      }
+    } else if (!claudeApiKey) {
+      throw new Error("CLAUDE_API_KEY is required when using Claude");
     }
 
     return true;

@@ -35,8 +35,8 @@ This creates:
 nano .env
 
 # Add your API credentials:
-AI_MODEL=copilot
-COPILOT_API_KEY=your_key_here
+AI_MODEL=claude
+CLAUDE_API_KEY=your_key_here
 BASE_URL=http://localhost:3000
 ```
 
@@ -145,10 +145,10 @@ Then expected result
 
 ## Supported AI Models
 
-- **Copilot** (default): `AI_MODEL=copilot`
-  - Requires: `COPILOT_API_KEY`
-- **Claude**: `AI_MODEL=claude`
+- **Claude** (default): `AI_MODEL=claude`
   - Requires: `CLAUDE_API_KEY`
+- **Azure OpenAI**: `AI_MODEL=azure-openai`
+  - Requires: `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT`
 
 ## Troubleshooting
 
@@ -159,7 +159,7 @@ Then expected result
 cat .env
 
 # Ensure it has the right key
-COPILOT_API_KEY=your_actual_key
+CLAUDE_API_KEY=your_actual_key
 ```
 
 **"Tests timing out"**
