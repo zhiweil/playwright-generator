@@ -16,7 +16,7 @@ export class LocalLLMProvider extends LLMProvider {
       const response = await axios.post(
         `${this.baseUrl}/v1/chat/completions`,
         { model: this.model, messages: [{ role: "user", content: "test" }], max_tokens: 10 },
-        { headers: { "Content-Type": "application/json" }, timeout: 5000 },
+        { headers: { "Content-Type": "application/json" }, timeout: 30000 },
       );
       return response.status === 200;
     } catch (error: any) {

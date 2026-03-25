@@ -27,7 +27,7 @@ export class AzureOpenAIProvider extends LLMProvider {
       const response = await axios.post(
         this.url,
         { messages: [{ role: "user", content: "test" }], max_tokens: 10 },
-        { headers: { "api-key": this.apiKey, "Content-Type": "application/json" }, timeout: 5000 },
+        { headers: { "api-key": this.apiKey, "Content-Type": "application/json" }, timeout: 30000 },
       );
       return response.status === 200;
     } catch (error: any) {
@@ -42,7 +42,7 @@ export class AzureOpenAIProvider extends LLMProvider {
         this.url,
         {
           messages: [{ role: "user", content: this.buildPrompt(prompt) }],
-          max_tokens: 2000,
+          max_tokens: 3500,
           temperature: 0.2,
         },
         {

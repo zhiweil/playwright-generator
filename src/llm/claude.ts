@@ -38,7 +38,7 @@ export class ClaudeProvider extends LLMProvider {
             "anthropic-version": "2023-06-01",
             "Content-Type": "application/json",
           },
-          timeout: 5000,
+          timeout: 30000,
         },
       );
       return response.status === 200;
