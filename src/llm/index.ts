@@ -2,6 +2,7 @@ import { LLMProvider } from "./provider";
 import { ClaudeProvider } from "./claude";
 import { AzureOpenAIProvider } from "./azure-openai";
 import { ChatGPTProvider } from "./chatgpt";
+import { LocalLLMProvider } from "./local";
 import configManager from "../config";
 
 export class LLMFactory {
@@ -13,6 +14,10 @@ export class LLMFactory {
       if (!config.azureOpenAIEndpoint) throw new Error("Azure OpenAI endpoint not configured. Set AZURE_OPENAI_ENDPOINT in .env");
       if (!config.azureOpenAIDeployment) throw new Error("Azure OpenAI deployment not configured. Set AZURE_OPENAI_DEPLOYMENT in .env");
       return new AzureOpenAIProvider(config.azureOpenAIApiKey, config.azureOpenAIEndpoint, config.azureOpenAIDeployment, config.azureOpenAIApiVersion);
+    }
+
+    if (config.aiModel === "local") {
+      return new LocalLLMProvider(config.localLLMUrl, config.localLLMModel);
     }
 
     if (config.aiModel === "chatgpt") {

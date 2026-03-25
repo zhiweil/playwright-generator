@@ -33,18 +33,27 @@ node dist/cli.js --help
 ## Project Structure
 
 ```
-src/
-├── cli.ts                 # Main CLI entry point (Commander.js)
-├── config.ts              # Configuration management
-├── index.ts               # Library exports
-├── commands/
-│   ├── init.ts            # Initialize new projects
-│   └── generate.ts        # Generate test code
-└── llm/
-    ├── provider.ts        # Abstract base class
-    ├── azure-openai.ts    # Azure OpenAI API client
-    ├── claude.ts          # Claude API client
-    └── index.ts           # Factory pattern
+playwright-generator/
+├── src/
+│   ├── cli.ts                 # Main CLI entry point with Commander.js
+│   ├── config.ts              # Configuration management (environment variables)
+│   ├── index.ts               # Library exports
+│   ├── commands/
+│   │   ├── init.ts            # Project initialization command
+│   │   └── generate.ts        # Test code generation command
+│   └── llm/
+│       ├── provider.ts        # Abstract LLM provider base class
+│       ├── azure-openai.ts    # Azure OpenAI integration
+│       ├── claude.ts          # Anthropic Claude integration
+│       └── index.ts           # LLM factory for provider instantiation
+├── dist/                      # Compiled TypeScript (generated)
+├── package.json               # NPM dependencies and scripts
+├── tsconfig.json              # TypeScript configuration
+├── LICENSE                    # MIT License
+├── .env.example               # Example environment configuration
+├── .gitignore                 # Git ignore rules
+└── README.md                  # Project documentation
+
 ```
 
 ## Architecture

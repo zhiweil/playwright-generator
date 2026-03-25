@@ -6,7 +6,7 @@ import fs from "fs";
 dotenv.config();
 
 export interface Config {
-  aiModel: "claude" | "azure-openai" | "chatgpt";
+  aiModel: "claude" | "azure-openai" | "chatgpt" | "local";
   claudeApiKey?: string;
   azureOpenAIApiKey?: string;
   azureOpenAIEndpoint?: string;
@@ -14,6 +14,8 @@ export interface Config {
   azureOpenAIApiVersion?: string;
   chatGPTApiKey?: string;
   chatGPTModel?: string;
+  localLLMUrl?: string;
+  localLLMModel?: string;
   browser: "chromium" | "firefox" | "webkit";
   headless: boolean;
   baseUrl: string;
@@ -38,7 +40,7 @@ export class ConfigManager {
 
   private loadConfig(): Config {
     return {
-      aiModel: (process.env.AI_MODEL as "claude" | "azure-openai" | "chatgpt") || "claude",
+      aiModel: (process.env.AI_MODEL as "claude" | "azure-openai" | "chatgpt" | "local") || "claude",
       claudeApiKey: process.env.CLAUDE_API_KEY,
       azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
       azureOpenAIEndpoint: process.env.AZURE_OPENAI_ENDPOINT,
@@ -46,6 +48,8 @@ export class ConfigManager {
       azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION || "2024-02-01",
       chatGPTApiKey: process.env.CHATGPT_API_KEY,
       chatGPTModel: process.env.CHATGPT_MODEL || "gpt-4o",
+      localLLMUrl: process.env.LOCAL_LLM_URL || "http://localhost:11434",
+      localLLMModel: process.env.LOCAL_LLM_MODEL || "llama3",
       browser:
         (process.env.BROWSER as "chromium" | "firefox" | "webkit") ||
         "chromium",

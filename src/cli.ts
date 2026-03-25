@@ -35,7 +35,7 @@ program
   )
   .option(
     "-m, --model <model>",
-    "LLM model to use (claude, azure-openai or chatgpt)",
+    "LLM model to use (claude, azure-openai, chatgpt or local)",
     "claude",
   )
   .option(

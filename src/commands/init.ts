@@ -30,7 +30,7 @@ export async function initializeProject(projectPath: string): Promise<void> {
 
     // Copy .env.example to project
     const envExampleContent = `# AI Model Configuration
-AI_MODEL=claude                     # Options: claude, azure-openai
+AI_MODEL=claude                     # Options: claude, azure-openai, chatgpt, local
 CLAUDE_API_KEY=                     # Required if using Claude (starts with sk-ant-)
 AZURE_OPENAI_API_KEY=               # Required if using Azure OpenAI
 AZURE_OPENAI_ENDPOINT=              # e.g. https://<resource>.openai.azure.com
@@ -38,6 +38,8 @@ AZURE_OPENAI_DEPLOYMENT=            # e.g. gpt-4o
 AZURE_OPENAI_API_VERSION=2024-02-01 # Optional, defaults to 2024-02-01
 CHATGPT_API_KEY=                    # Required if using ChatGPT (starts with sk-)
 CHATGPT_MODEL=gpt-4o                # Optional, defaults to gpt-4o
+LOCAL_LLM_URL=http://localhost:11434 # Required if using local LLM (Ollama default)
+LOCAL_LLM_MODEL=llama3              # Required if using local LLM (e.g. llama3, mistral, codellama)
 
 # Playwright Configuration
 BROWSER=chromium
