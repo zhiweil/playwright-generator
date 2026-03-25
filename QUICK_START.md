@@ -188,7 +188,7 @@ TIMEOUT=60000  # 60 seconds
 ## Documentation
 
 - Full README: See [README.md](./README.md)
-- Implementation details: See [IMPLEMENTATION.md](./IMPLEMENTATION.md)
+- Development details: See [DEVELOPMENT.md](./DEVELOPMENT.md)
 - Test format help: `playwright-generator help:testcases`
 
 ## Getting Help

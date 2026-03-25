@@ -10,7 +10,7 @@ const program = new Command();
 program
   .name("playwright-generator")
   .description("Generate Playwright test cases from natural language using LLM")
-  .version("1.0.31");
+  .version("1.0.32");
 
 // Init command
 program
@@ -84,27 +84,31 @@ File name: *.test.md
 
 Format:
 -------
-# [TC-XXXX] [TAG1] [TAG2]
+# Test Case: <Title>
 
-## Test: Clear description of what is being tested
+[TC-XXXX] [TAG1] [TAG2]
 
-Given the initial state or precondition
-When the user performs an action
-And additional actions
-Then expected result should occur
-And another expected result
+## Description
+
+- Given the initial state or precondition
+- When the user performs an action
+- And additional actions
+- Then expected result should occur
+- And another expected result
 
 Example:
 --------
-# [TC-0001] [SMOKE] [LOGIN]
+# Test Case: User Login
 
-## Test: User logs in with valid credentials
+[TC-0001] [SMOKE] [LOGIN]
 
-Given the user is on the login page
-When the user enters username and password
-And clicks the login button
-Then the user should see the dashboard
-And the welcome message should contain the user name
+## User logs in with valid credentials
+
+- Given the user is on the login page
+- When the user enters username and password
+- And clicks the login button
+- Then the user should see the dashboard
+- And the welcome message should contain the user name
 
 Tags:
 -----
@@ -116,7 +120,7 @@ Tips for better AI-generated code:
 1. Use clear, specific language
 2. Mention element types (button, input, link, etc.)
 3. Include exact text or identifiers when possible
-4. Use Given-When-Then structure for clarity
+4. Use Given-When-Then structure with bullet points (-) for clarity
 5. Keep test cases focused on one feature
 6. Review generated code before committing
     `),

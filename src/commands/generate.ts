@@ -7,7 +7,7 @@ import { LLMPrompt } from "../llm/provider";
 
 export interface GenerateOptions {
   testCaseIds?: string[];
-  model?: "copilot" | "claude";
+  model?: "claude" | "azure-openai" | "chatgpt" | "local";
   outputFile?: string;
 }
 
@@ -182,9 +182,9 @@ function extractTestCaseContent(
     throw new Error(`Test case [${testCaseId}] not found in file`);
   }
 
-  // Find the start of this test case (previous "## Test Case:" or beginning of file)
+  // Find the start of this test case (previous "# Test Case:" / "## Test Case:" heading or beginning of file)
   for (let i = startIndex - 1; i >= 0; i--) {
-    if (lines[i].trim().startsWith("## Test Case:")) {
+    if (/^#{1,2}\s+Test Case:/i.test(lines[i].trim())) {
       startIndex = i;
       break;
     }
@@ -193,9 +193,9 @@ function extractTestCaseContent(
     }
   }
 
-  // Find the end of this test case (next "## Test Case:" or end of file)
+  // Find the end of this test case (next "# Test Case:" / "## Test Case:" heading or end of file)
   for (let i = startIndex + 1; i < lines.length; i++) {
-    if (lines[i].trim().startsWith("## Test Case:") && i > startIndex) {
+    if (/^#{1,2}\s+Test Case:/i.test(lines[i].trim()) && i > startIndex) {
       endIndex = i;
       break;
     }
