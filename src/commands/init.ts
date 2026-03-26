@@ -113,7 +113,7 @@ export default defineConfig({
         "test:headed": "playwright test --headed --grep",
         "test:browser": "playwright test --grep",
         "test:video": "playwright test --grep",
-        report: "playwright show-report",
+        report: "playwright show-report --port 9324",
       },
       devDependencies: {
         "@playwright/test": "^1.40.0",

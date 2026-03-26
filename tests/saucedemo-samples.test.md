@@ -14,7 +14,7 @@
 - When the user clicks on the "Sauce Labs Backpack" product
 - Then the product details page should open
 - And the product name should be "Sauce Labs Backpack"
-- And the product price should be displayed
+- And the product price should be displayed.
 
 - When the user clicks the "Add to Cart" button
 - Then the cart icon should show "1" item

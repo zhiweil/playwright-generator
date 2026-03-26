@@ -1,0 +1,61 @@
+{
+  "publisher": "zhiweiliu",
+  "name": "playwright-generator-vscode",
+  "displayName": "Playwright Generator",
+  "description": "VS Code extension for playwright-generator — configure, generate and run Playwright tests",
+  "version": "0.0.1",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zhiweil/playwright-generator.git"
+  },
+  "homepage": "https://github.com/zhiweil/playwright-generator#readme",
+  "bugs": {
+    "url": "https://github.com/zhiweil/playwright-generator/issues"
+  },
+  "keywords": ["playwright", "testing", "automation", "llm", "ai", "test-generation"],
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Testing"],
+  "activationEvents": ["workspaceContains:**/.env"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "playwrightGenerator.open",
+        "title": "Playwright Generator: Open Panel"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "playwrightGenerator",
+          "title": "Playwright Generator",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "playwrightGenerator": [
+        {
+          "type": "webview",
+          "id": "playwrightGenerator.panel",
+          "name": "Playwright Generator"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -watch -p tsconfig.json",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
+}
