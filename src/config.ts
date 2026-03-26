@@ -2,8 +2,8 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from the project's .env file
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 export interface Config {
   aiModel: "claude" | "azure-openai" | "chatgpt" | "local";
