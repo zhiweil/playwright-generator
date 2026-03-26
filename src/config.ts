@@ -64,6 +64,9 @@ export class ConfigManager {
     return this.config;
   }
 
+  setModel(model: "claude" | "azure-openai" | "chatgpt" | "local"): void {
+    this.config.aiModel = model;
+  }
   validateConfig(): boolean {
     const { aiModel, claudeApiKey, azureOpenAIApiKey, azureOpenAIEndpoint, azureOpenAIDeployment } = this.config;
 

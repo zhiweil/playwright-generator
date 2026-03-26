@@ -4,11 +4,17 @@ import { glob } from "glob";
 import chalk from "chalk";
 import { LLMFactory } from "../llm";
 import { LLMPrompt } from "../llm/provider";
+import configManager from "../config";
 
 export interface GenerateOptions {
   testCaseIds?: string[];
   model?: "claude" | "azure-openai" | "chatgpt" | "local";
   outputFile?: string;
+}
+
+// Normalise Windows backslashes to forward slashes for glob
+function toGlobPath(p: string): string {
+  return p.split(path.sep).join("/");
 }
 
 export async function generateTestCode(
@@ -20,6 +26,11 @@ export async function generateTestCode(
       throw new Error(
         "Please specify at least one test case ID with --tc flag",
       );
+    }
+
+    // Override model from CLI flag before creating the provider
+    if (options.model) {
+      configManager.setModel(options.model);
     }
 
     const llmProvider = LLMFactory.createProvider();
@@ -49,20 +60,18 @@ export async function generateTestCode(
     // Ensure generated directory exists
     await fs.ensureDir(generatedDir);
 
-    let outputFilePath = options.outputFile
+    const outputFilePath = options.outputFile
       ? path.join(generatedDir, options.outputFile)
       : path.join(generatedDir, "generated.test.ts");
 
     // Ensure output file exists with imports if it's new
     if (!fs.existsSync(outputFilePath)) {
-      const header = `import { test, expect } from '@playwright/test';\n\n`;
-      await fs.writeFile(outputFilePath, header);
+      await fs.writeFile(outputFilePath, `import { test, expect } from '@playwright/test';\n\n`);
     }
 
     for (const testCaseId of options.testCaseIds) {
-      console.log(chalk.blue(`\\nGenerating test case: ${testCaseId}...`));
+      console.log(chalk.blue(`\nGenerating test case: ${testCaseId}...`));
 
-      // Find the test case file
       const testCaseFile = await findTestCaseFile(testsDir, testCaseId);
 
       if (!testCaseFile) {
@@ -76,48 +85,26 @@ export async function generateTestCode(
         chalk.gray(`Found: ${path.relative(projectRoot, testCaseFile)}`),
       );
 
-      // Read test case content
       const fullFileContent = await fs.readFile(testCaseFile, "utf-8");
-
-      // Extract only the specific test case content
-      const testCaseContent = extractTestCaseContent(
-        fullFileContent,
-        testCaseId,
-      );
-
-      // Extract tags
+      const testCaseContent = extractTestCaseContent(fullFileContent, testCaseId);
       const tags = extractTags(testCaseContent);
 
-      // Create LLM prompt
       const prompt: LLMPrompt = {
         testCase: testCaseContent,
         testCaseId: testCaseId,
         tags: tags,
       };
 
-      // Generate code
       const generatedCode = await llmProvider.generateTestCode(prompt);
 
-      // Append to output file
-      await appendTestCodeToFile(
-        outputFilePath,
-        generatedCode.code,
-        testCaseId,
-        tags,
-      );
+      await appendTestCodeToFile(outputFilePath, generatedCode.code, testCaseId, tags);
 
       console.log(chalk.green(`✓ Generated test case: ${testCaseId}`));
     }
 
-    console.log(chalk.green.bold(`\\n✓ Code generation completed!`));
-    console.log(
-      chalk.cyan(
-        `Generated file: ${path.relative(projectRoot, outputFilePath)}`,
-      ),
-    );
-    console.log(
-      chalk.cyan("Next: Review the generated code and run: npm test"),
-    );
+    console.log(chalk.green.bold(`\n✓ Code generation completed!`));
+    console.log(chalk.cyan(`Generated file: ${path.relative(projectRoot, outputFilePath)}`));
+    console.log(chalk.cyan("Next: Review the generated code and run: npm test"));
   } catch (error) {
     console.error(chalk.red("Error generating test code:"), error);
     throw error;
@@ -129,7 +116,7 @@ async function findTestCaseFile(
   testCaseId: string,
 ): Promise<string | null> {
   try {
-    const files = await glob(path.join(testsDir, "**/*.test.md"));
+    const files = await glob(toGlobPath(path.join(testsDir, "**/*.test.md")));
 
     for (const file of files) {
       const content = await fs.readFile(file, "utf-8");
@@ -146,7 +133,7 @@ async function findTestCaseFile(
 }
 
 async function findDuplicateTestCaseIds(testsDir: string): Promise<string[]> {
-  const files = await glob(path.join(testsDir, "**/*.test.md"));
+  const files = await glob(toGlobPath(path.join(testsDir, "**/*.test.md")));
   const idMap: Record<string, number> = {};
   const idRegex = /\[TC-[A-Z0-9_-]+\]/gi;
 
@@ -162,15 +149,12 @@ async function findDuplicateTestCaseIds(testsDir: string): Promise<string[]> {
 
   return Object.keys(idMap).filter((id) => idMap[id] > 1);
 }
-function extractTestCaseContent(
-  fileContent: string,
-  testCaseId: string,
-): string {
-  const lines = fileContent.split("\n");
+
+function extractTestCaseContent(fileContent: string, testCaseId: string): string {
+  const lines = fileContent.replace(/\r\n/g, "\n").split("\n");
   let startIndex = -1;
   let endIndex = lines.length;
 
-  // Find the line with the test case ID
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes(`[${testCaseId}]`)) {
       startIndex = i;
@@ -182,7 +166,6 @@ function extractTestCaseContent(
     throw new Error(`Test case [${testCaseId}] not found in file`);
   }
 
-  // Find the start of this test case (previous "# Test Case:" / "## Test Case:" heading or beginning of file)
   for (let i = startIndex - 1; i >= 0; i--) {
     if (/^#{1,2}\s+Test Case:/i.test(lines[i].trim())) {
       startIndex = i;
@@ -193,7 +176,6 @@ function extractTestCaseContent(
     }
   }
 
-  // Find the end of this test case (next "# Test Case:" / "## Test Case:" heading or end of file)
   for (let i = startIndex + 1; i < lines.length; i++) {
     if (/^#{1,2}\s+Test Case:/i.test(lines[i].trim()) && i > startIndex) {
       endIndex = i;
@@ -201,10 +183,9 @@ function extractTestCaseContent(
     }
   }
 
-  // Extract the test case content
-  const testCaseLines = lines.slice(startIndex, endIndex);
-  return testCaseLines.join("\n").trim();
+  return lines.slice(startIndex, endIndex).join("\n").trim();
 }
+
 function extractTags(testCaseContent: string): string[] {
   const tagLine = testCaseContent.split("\n").find(line => /\[TC-[A-Z0-9_-]+\]/i.test(line)) || "";
   const tagRegex = /\[([A-Z0-9][A-Z0-9\-]*[A-Z0-9])\]/g;
@@ -213,7 +194,6 @@ function extractTags(testCaseContent: string): string[] {
 }
 
 export function extractTypeScriptCode(raw: string): string {
-  // Try fencing blocks first, picking the longest snippet (best chance of complete function)
   const fenceRegex = /```(?:ts|typescript|javascript)?\s*\n([\s\S]*?)\n```/gi;
   const fenceMatches = [...raw.matchAll(fenceRegex)];
 
@@ -223,15 +203,13 @@ export function extractTypeScriptCode(raw: string): string {
       .filter(Boolean);
 
     if (codeBlocks.length > 0) {
-      const best = codeBlocks.reduce(
+      return codeBlocks.reduce(
         (prev, curr) => (curr.length > prev.length ? curr : prev),
         "",
-      );
-      return best.trim();
+      ).trim();
     }
   }
 
-  // If no fenced blocks, extract the first complete test() function
   const testIndex = raw.indexOf("test(");
   if (testIndex !== -1) {
     const arrowIndex = raw.indexOf("=>", testIndex);
@@ -257,15 +235,8 @@ export function extractTypeScriptCode(raw: string): string {
     for (let i = bodyStartIndex + 1; i < raw.length; i++) {
       const char = raw[i];
 
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-
-      if (char === "\\") {
-        escaped = true;
-        continue;
-      }
+      if (escaped) { escaped = false; continue; }
+      if (char === "\\") { escaped = true; continue; }
 
       if (!inString && (char === '"' || char === "'" || char === "`")) {
         inString = true;
@@ -296,11 +267,9 @@ export function extractTypeScriptCode(raw: string): string {
       return raw.slice(testIndex, endIndex).trim();
     }
 
-    // If brace matching fails, keep raw from test( to end as fallback
     return raw.slice(testIndex).trim();
   }
 
-  // Last resort: return the entire input trimmed
   return raw.trim();
 }
 
@@ -312,13 +281,11 @@ async function appendTestCodeToFile(
 ): Promise<void> {
   let code = extractTypeScriptCode(generatedCode);
 
-  // Enforce all tags in the test title deterministically
-  const tagString = tags.map(t => `[${t}]`).join(' ');
+  const tagString = tags.map(t => `[${t}]`).join(" ");
   code = code.replace(
     /^(test\s*\(\s*['"`])(.+?)(['"`])/m,
     (_, open, title, close) => {
-      // Strip any existing bracket tags from the title, then prepend all tags
-      const stripped = title.replace(/\[[A-Z0-9\-]+\]\s*/g, '').trim();
+      const stripped = title.replace(/\[[A-Z0-9\-]+\]\s*/g, "").trim();
       return `${open}${tagString} ${stripped}${close}`;
     }
   );
@@ -334,25 +301,20 @@ async function appendTestCodeToFile(
       .trim();
   }
 
-  // Remove all existing occurrences of this test case ID to make latest output win.
   while (true) {
     const idIndex = currentContent.indexOf(testCaseId);
     if (idIndex === -1) break;
 
-    // Find beginning of enclosing test block
     const startIndex = currentContent.lastIndexOf("test(", idIndex);
     if (startIndex === -1) {
-      // If we can't find enclosing test block, remove just the literal ID and continue.
       currentContent =
         currentContent.slice(0, idIndex) +
         currentContent.slice(idIndex + testCaseId.length);
       continue;
     }
 
-    // Determine end of enclosing test block (next `test(` or end of file)
     const nextTestIndex = currentContent.indexOf("test(", startIndex + 1);
-    const endIndex =
-      nextTestIndex !== -1 ? nextTestIndex : currentContent.length;
+    const endIndex = nextTestIndex !== -1 ? nextTestIndex : currentContent.length;
 
     currentContent =
       currentContent.slice(0, startIndex).trimEnd() +
@@ -360,7 +322,6 @@ async function appendTestCodeToFile(
       currentContent.slice(endIndex).trimStart();
   }
 
-  // Append latest code
   if (!currentContent.endsWith("\n\n")) {
     currentContent += "\n\n";
   }
