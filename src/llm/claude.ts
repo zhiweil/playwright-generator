@@ -114,8 +114,7 @@ export class ClaudeProvider extends LLMProvider {
         throw new Error(
           `Failed to generate code with Claude: Model not available. ` +
             `Your Anthropic account may not have access to Claude models. ` +
-            `Please check your account at https://console.anthropic.com/ and ensure Claude API access is enabled. ` +
-            `Alternatively, try using Copilot: set AI_MODEL=copilot in your .env file.`,
+            `Please check your account at https://console.anthropic.com/ and ensure Claude API access is enabled. `,
         );
       }
 
