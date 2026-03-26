@@ -18,7 +18,6 @@ export interface Config {
   localLLMModel?: string;
   browser: "chromium" | "firefox" | "webkit";
   headless: boolean;
-  baseUrl: string;
   timeout: number;
   retries: number;
 }
@@ -54,7 +53,6 @@ export class ConfigManager {
         (process.env.BROWSER as "chromium" | "firefox" | "webkit") ||
         "chromium",
       headless: process.env.HEADLESS !== "false",
-      baseUrl: process.env.BASE_URL || "http://localhost:3000",
       timeout: parseInt(process.env.TIMEOUT || "30000", 10),
       retries: parseInt(process.env.RETRIES || "1", 10),
     };

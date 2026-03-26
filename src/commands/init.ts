@@ -44,7 +44,6 @@ LOCAL_LLM_MODEL=llama3              # Required if using local LLM (e.g. llama3, 
 # Playwright Configuration
 BROWSER=chromium
 HEADLESS=true
-BASE_URL=http://localhost:3000
 
 # Execution Configuration
 TIMEOUT=30000
@@ -74,7 +73,6 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 4,
   reporter: 'html',
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: (process.env.VIDEO || 'retain-on-failure') as 'off' | 'on' | 'retain-on-failure' | 'on-first-retry',
