@@ -36,7 +36,6 @@ program
   .option(
     "-m, --model <model>",
     "LLM model to use (claude, azure-openai, chatgpt or local)",
-    "claude",
   )
   .option(
     "-o, --output <outputFile>",
