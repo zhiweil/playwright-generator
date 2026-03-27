@@ -63,6 +63,10 @@ export async function generateTestCode(
     const testsDir = path.join(projectRoot, "tests");
     const generatedDir = path.join(projectRoot, "generated");
 
+    console.log(chalk.gray(`Project root: ${projectRoot}`));
+    console.log(chalk.gray(`Tests dir: ${testsDir} (exists: ${fs.existsSync(testsDir)})`));
+    const mdFiles = findFiles(testsDir, ".test.md");
+    console.log(chalk.gray(`Found ${mdFiles.length} test file(s): ${mdFiles.join(", ") || "none"}`));
     // Ensure unique test case IDs across all test files
     const duplicateIds = await findDuplicateTestCaseIds(testsDir);
     if (duplicateIds.length > 0) {
