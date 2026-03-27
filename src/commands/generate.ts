@@ -1,6 +1,5 @@
 import path from "path";
 import fs from "fs-extra";
-import { glob } from "glob";
 import chalk from "chalk";
 import { LLMFactory } from "../llm";
 import { LLMPrompt } from "../llm/provider";
@@ -15,6 +14,21 @@ export interface GenerateOptions {
 // Normalise Windows backslashes to forward slashes for glob
 function toGlobPath(p: string): string {
   return p.split(path.sep).join("/");
+}
+
+// Recursively find all files matching a suffix under a directory
+function findFiles(dir: string, suffix: string): string[] {
+  const results: string[] = [];
+  if (!fs.existsSync(dir)) { return results; }
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...findFiles(full, suffix));
+    } else if (entry.isFile() && entry.name.endsWith(suffix)) {
+      results.push(full);
+    }
+  }
+  return results;
 }
 
 export async function generateTestCode(
@@ -116,13 +130,12 @@ async function findTestCaseFile(
   testCaseId: string,
 ): Promise<string | null> {
   try {
-    const files = await glob(toGlobPath(path.join(testsDir, "**/*.test.md")), { windowsPathsNoEscape: true });
+    const files = findFiles(testsDir, ".test.md");
 
     for (const file of files) {
-      const nativePath = file.split("/").join(path.sep);
-      const content = await fs.readFile(nativePath, "utf-8");
+      const content = await fs.readFile(file, "utf-8");
       if (content.includes(`[${testCaseId}]`)) {
-        return nativePath;
+        return file;
       }
     }
 
@@ -134,13 +147,12 @@ async function findTestCaseFile(
 }
 
 async function findDuplicateTestCaseIds(testsDir: string): Promise<string[]> {
-  const files = await glob(toGlobPath(path.join(testsDir, "**/*.test.md")), { windowsPathsNoEscape: true });
+  const files = findFiles(testsDir, ".test.md");
   const idMap: Record<string, number> = {};
   const idRegex = /\[TC-[A-Z0-9_-]+\]/gi;
 
   for (const file of files) {
-    const nativePath = file.split("/").join(path.sep);
-    const content = await fs.readFile(nativePath, "utf-8");
+    const content = await fs.readFile(file, "utf-8");
     const matches = content.match(idRegex) || [];
 
     for (const match of matches) {
