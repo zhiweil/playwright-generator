@@ -116,12 +116,13 @@ async function findTestCaseFile(
   testCaseId: string,
 ): Promise<string | null> {
   try {
-    const files = await glob(toGlobPath(path.join(testsDir, "**/*.test.md")));
+    const files = await glob(toGlobPath(path.join(testsDir, "**/*.test.md")), { windowsPathsNoEscape: true });
 
     for (const file of files) {
-      const content = await fs.readFile(file, "utf-8");
+      const nativePath = file.split("/").join(path.sep);
+      const content = await fs.readFile(nativePath, "utf-8");
       if (content.includes(`[${testCaseId}]`)) {
-        return file;
+        return nativePath;
       }
     }
 
@@ -133,16 +134,17 @@ async function findTestCaseFile(
 }
 
 async function findDuplicateTestCaseIds(testsDir: string): Promise<string[]> {
-  const files = await glob(toGlobPath(path.join(testsDir, "**/*.test.md")));
+  const files = await glob(toGlobPath(path.join(testsDir, "**/*.test.md")), { windowsPathsNoEscape: true });
   const idMap: Record<string, number> = {};
   const idRegex = /\[TC-[A-Z0-9_-]+\]/gi;
 
   for (const file of files) {
-    const content = await fs.readFile(file, "utf-8");
+    const nativePath = file.split("/").join(path.sep);
+    const content = await fs.readFile(nativePath, "utf-8");
     const matches = content.match(idRegex) || [];
 
     for (const match of matches) {
-      const normalizedId = match.trim().slice(1, -1);
+      const normalizedId = match.trim().slice(1, -1).toUpperCase();
       idMap[normalizedId] = (idMap[normalizedId] || 0) + 1;
     }
   }
