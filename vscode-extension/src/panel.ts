@@ -133,7 +133,11 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   private _runInTerminal(cmd: string): void {
     const terminal = vscode.window.createTerminal("Playwright Generator");
     terminal.show();
-    terminal.sendText(`cd "${this._workspaceRoot}" && ${cmd}`);
+    if (process.platform === "win32") {
+      terminal.sendText(`cmd /c "cd /d "${this._workspaceRoot}" && ${cmd}"`);
+    } else {
+      terminal.sendText(`cd "${this._workspaceRoot}" && ${cmd}`);
+    }
   }
 
   private _getHtml(webview: vscode.Webview): string {
