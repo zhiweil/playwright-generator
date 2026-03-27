@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { readEnv, writeEnv, EnvConfig } from "./envManager";
+import { readEnv, writeEnv, readCustomEnv, writeCustomEnv, EnvConfig } from "./envManager";
 import { scanTestCaseIds, scanTags } from "./testCaseScanner";
 
 export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
@@ -41,7 +41,8 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     const env = readEnv(this._workspaceRoot);
     const testCaseIds = scanTestCaseIds(this._workspaceRoot);
     const tags = scanTags(this._workspaceRoot);
-    this._view.webview.postMessage({ command: "init", env, testCaseIds, tags });
+    const customEnv = readCustomEnv(this._workspaceRoot);
+    this._view.webview.postMessage({ command: "init", env, testCaseIds, tags, customEnv });
   }
 
   private _setupWatchers(): void {
@@ -75,6 +76,11 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     switch (msg.command) {
       case "saveEnv":
         writeEnv(this._workspaceRoot, msg.env as EnvConfig);
+        vscode.window.showInformationMessage("Playwright Generator: .env saved.");
+        break;
+
+      case "saveCustomEnv":
+        writeCustomEnv(this._workspaceRoot, msg.customEnv as Record<string, string>);
         vscode.window.showInformationMessage("Playwright Generator: .env saved.");
         break;
 
@@ -137,9 +143,13 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   <title>Playwright Generator</title>
 </head>
 <body>
-  <div class="section">
-    <h2>Configuration</h2>
+  <div class="tab-bar">
+    <button class="tab active" data-tab="config">Config</button>
+    <button class="tab" data-tab="generate">Generate</button>
+    <button class="tab" data-tab="run">Run</button>
+  </div>
 
+  <div id="tab-config" class="tab-panel">
     <label>AI Model</label>
     <select id="AI_MODEL">
       <option value="claude">Claude</option>
@@ -152,21 +162,18 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
       <label>Claude API Key</label>
       <input type="password" id="CLAUDE_API_KEY" placeholder="sk-ant-...">
     </div>
-
     <div id="azure-fields" class="model-fields hidden">
       <label>Azure OpenAI API Key</label>
       <input type="password" id="AZURE_OPENAI_API_KEY" placeholder="Azure API key">
       <label>Azure OpenAI Endpoint</label>
-      <input type="text" id="AZURE_OPENAI_ENDPOINT" placeholder="https://<resource>.openai.azure.com">
+      <input type="text" id="AZURE_OPENAI_ENDPOINT" placeholder="https://&lt;resource&gt;.openai.azure.com">
     </div>
-
     <div id="chatgpt-fields" class="model-fields hidden">
       <label>ChatGPT API Key</label>
       <input type="password" id="CHATGPT_API_KEY" placeholder="sk-...">
       <label>ChatGPT Model</label>
       <input type="text" id="CHATGPT_MODEL" placeholder="gpt-4o">
     </div>
-
     <div id="local-fields" class="model-fields hidden">
       <label>Local LLM URL</label>
       <input type="text" id="LOCAL_LLM_URL" placeholder="http://localhost:11434">
@@ -189,9 +196,7 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
       <option value="on-first-retry">On First Retry</option>
     </select>
 
-    <div class="row">
-      <label class="inline"><input type="checkbox" id="HEADLESS"> Headless</label>
-    </div>
+    <label class="inline"><input type="checkbox" id="HEADLESS"> Headless</label>
 
     <label>Timeout (ms)</label>
     <input type="number" id="TIMEOUT" placeholder="30000">
@@ -199,22 +204,23 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     <label>Retries</label>
     <input type="number" id="RETRIES" placeholder="1">
 
-    <button id="btn-save">Save Configuration</button>
+    <div class="section-divider"></div>
+    <label class="section-label">Custom Environment Variables</label>
+    <div id="custom-env-rows"></div>
+    <button id="btn-add-env">+ Add Variable</button>
   </div>
 
-  <div class="section">
-    <h2>Generation</h2>
+  <div id="tab-generate" class="tab-panel hidden">
     <label>Test Case ID</label>
     <input type="text" id="tc-search" placeholder="Search or select TC ID...">
-    <select id="tc-select" size="4"></select>
+    <select id="tc-select"></select>
     <button id="btn-generate">Generate</button>
   </div>
 
-  <div class="section">
-    <h2>Run</h2>
+  <div id="tab-run" class="tab-panel hidden">
     <label>Tag</label>
     <input type="text" id="tag-search" placeholder="Search or select tag...">
-    <select id="tag-select" size="4"></select>
+    <select id="tag-select"></select>
     <div class="button-group">
       <button id="btn-run-all">All Tests</button>
       <button id="btn-run-tag">Run by Tag</button>

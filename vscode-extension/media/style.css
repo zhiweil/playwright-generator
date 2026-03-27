@@ -3,23 +3,60 @@ body {
   font-size: var(--vscode-font-size);
   color: var(--vscode-foreground);
   background: var(--vscode-sideBar-background);
-  padding: 8px;
+  padding: 0;
   margin: 0;
 }
 
-h2 {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--vscode-sideBarSectionHeader-foreground);
-  background: var(--vscode-sideBarSectionHeader-background);
-  margin: 0 -8px 8px;
-  padding: 6px 8px;
+/* ── Tab bar ────────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-editorGroup-border));
+  background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-sideBar-background));
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-.section {
-  margin-bottom: 16px;
+.tab {
+  flex: 1;
+  padding: 7px 4px;
+  background: transparent;
+  color: var(--vscode-tab-inactiveForeground, var(--vscode-foreground));
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: var(--vscode-font-size);
+  font-family: var(--vscode-font-family);
+  text-align: center;
+  margin-top: 0;
+  width: auto;
+  border-radius: 0;
+}
+
+.tab:hover {
+  background: var(--vscode-tab-hoverBackground, rgba(255,255,255,0.05));
+  color: var(--vscode-tab-activeForeground, var(--vscode-foreground));
+}
+
+.tab.active {
+  color: var(--vscode-tab-activeForeground, var(--vscode-foreground));
+  border-bottom: 2px solid var(--vscode-focusBorder);
+  background: transparent;
+}
+
+/* ── Tab panels ────────────────────────────────────────────────────────── */
+.tab-panel {
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 36px);
+  box-sizing: border-box;
+}
+
+#tc-select,
+#tag-select {
+  flex: 1;
+  min-height: 0;
 }
 
 label {
@@ -56,11 +93,6 @@ select {
 input:focus,
 select:focus {
   border-color: var(--vscode-focusBorder);
-}
-
-select[size] {
-  height: auto;
-  min-height: 72px;
 }
 
 .hidden {
@@ -103,4 +135,53 @@ button:hover {
 
 .button-group button {
   margin-top: 0;
+}
+
+/* ── Custom env rows ───────────────────────────────────────────────────────── */
+.env-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+  align-items: center;
+}
+
+.env-row .env-key {
+  width: 38%;
+  flex-shrink: 0;
+}
+
+.env-row .env-val {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-delete {
+  width: 24px;
+  min-width: 24px;
+  padding: 2px 0;
+  margin-top: 0;
+  background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+  color: var(--vscode-errorForeground, #f48771);
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.btn-delete:hover {
+  background: var(--vscode-inputValidation-errorBorder, #be1100);
+}
+
+
+.section-divider {
+  border-top: 1px solid var(--vscode-panel-border, var(--vscode-editorGroup-border));
+  margin: 12px 0 8px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 6px;
 }

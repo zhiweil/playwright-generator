@@ -33,6 +33,8 @@ export const ENV_DEFAULTS: EnvConfig = {
   VIDEO: "retain-on-failure",
 };
 
+export const SYSTEM_KEYS = new Set(Object.keys(ENV_DEFAULTS));
+
 export function readEnv(workspaceRoot: string): EnvConfig {
   const envPath = path.join(workspaceRoot, ".env");
   const config: EnvConfig = { ...ENV_DEFAULTS };
@@ -87,4 +89,49 @@ export function writeEnv(workspaceRoot: string, config: EnvConfig): void {
   }
 
   fs.writeFileSync(envPath, newLines.join("\n"), "utf-8");
+}
+
+// Returns all non-system key=value pairs from .env
+export function readCustomEnv(workspaceRoot: string): Record<string, string> {
+  const envPath = path.join(workspaceRoot, ".env");
+  const custom: Record<string, string> = {};
+  if (!fs.existsSync(envPath)) { return custom; }
+
+  for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) { continue; }
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) { continue; }
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).split("#")[0].trim();
+    if (!SYSTEM_KEYS.has(key)) {
+      custom[key] = value;
+    }
+  }
+  return custom;
+}
+
+// Writes custom (non-system) key=value pairs to .env, removing deleted ones
+export function writeCustomEnv(workspaceRoot: string, custom: Record<string, string>): void {
+  const envPath = path.join(workspaceRoot, ".env");
+  let lines: string[] = fs.existsSync(envPath)
+    ? fs.readFileSync(envPath, "utf-8").split("\n")
+    : [];
+
+  // Remove all existing non-system lines
+  lines = lines.filter((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) { return true; }
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) { return true; }
+    const key = trimmed.slice(0, eqIndex).trim();
+    return SYSTEM_KEYS.has(key);
+  });
+
+  // Append custom vars
+  for (const [key, value] of Object.entries(custom)) {
+    if (key.trim()) { lines.push(`${key}=${value}`); }
+  }
+
+  fs.writeFileSync(envPath, lines.join("\n"), "utf-8");
 }
