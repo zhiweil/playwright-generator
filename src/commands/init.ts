@@ -56,7 +56,7 @@ VIDEO=retain-on-failure
     // Create .env file if it doesn't exist
     const envPath = path.join(projectRoot, ".env");
     if (!fs.existsSync(envPath)) {
-      await fs.writeFile(envPath, envExampleContent);
+      await fs.writeFile(envPath, envExampleContent + "\n# Custom environment variables can be added below\n");
       console.log(chalk.green("✓ Created .env file"));
     }
 
