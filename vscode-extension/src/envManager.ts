@@ -6,6 +6,8 @@ export interface EnvConfig {
   CLAUDE_API_KEY: string;
   AZURE_OPENAI_API_KEY: string;
   AZURE_OPENAI_ENDPOINT: string;
+  AZURE_OPENAI_DEPLOYMENT: string;
+  AZURE_OPENAI_API_VERSION: string;
   CHATGPT_API_KEY: string;
   CHATGPT_MODEL: string;
   LOCAL_LLM_URL: string;
@@ -22,6 +24,8 @@ export const ENV_DEFAULTS: EnvConfig = {
   CLAUDE_API_KEY: "",
   AZURE_OPENAI_API_KEY: "",
   AZURE_OPENAI_ENDPOINT: "",
+  AZURE_OPENAI_DEPLOYMENT: "",
+  AZURE_OPENAI_API_VERSION: "2024-02-01",
   CHATGPT_API_KEY: "",
   CHATGPT_MODEL: "gpt-4o",
   LOCAL_LLM_URL: "http://localhost:11434",

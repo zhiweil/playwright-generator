@@ -117,7 +117,7 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
       }
 
       case "report":
-        this._runInTerminal("npm run report -- --port 9324");
+        this._runInTerminal("node report.js");
         break;
     }
   }
@@ -167,6 +167,10 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
       <input type="password" id="AZURE_OPENAI_API_KEY" placeholder="Azure API key">
       <label>Azure OpenAI Endpoint</label>
       <input type="text" id="AZURE_OPENAI_ENDPOINT" placeholder="https://&lt;resource&gt;.openai.azure.com">
+      <label>Azure OpenAI Deployment</label>
+      <input type="text" id="AZURE_OPENAI_DEPLOYMENT" placeholder="gpt-4o">
+      <label>Azure OpenAI API Version</label>
+      <input type="text" id="AZURE_OPENAI_API_VERSION" placeholder="2024-02-01">
     </div>
     <div id="chatgpt-fields" class="model-fields hidden">
       <label>ChatGPT API Key</label>
@@ -213,14 +217,14 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   <div id="tab-generate" class="tab-panel hidden">
     <label>Test Case ID</label>
     <input type="text" id="tc-search" placeholder="Search or select TC ID...">
-    <select id="tc-select"></select>
+    <select id="tc-select" size="2"></select>
     <button id="btn-generate">Generate</button>
   </div>
 
   <div id="tab-run" class="tab-panel hidden">
     <label>Tag</label>
     <input type="text" id="tag-search" placeholder="Search or select tag...">
-    <select id="tag-select"></select>
+    <select id="tag-select" size="2"></select>
     <div class="button-group">
       <button id="btn-run-all">All Tests</button>
       <button id="btn-run-tag">Run by Tag</button>
