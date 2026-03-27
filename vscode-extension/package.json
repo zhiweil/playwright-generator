@@ -3,7 +3,7 @@
   "name": "playwright-generator-vscode",
   "displayName": "Playwright Generator",
   "description": "VS Code extension for playwright-generator — configure, generate and run Playwright tests",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "icon": "media/icon.png",
   "repository": {
@@ -14,10 +14,23 @@
   "bugs": {
     "url": "https://github.com/zhiweil/playwright-generator/issues"
   },
-  "keywords": ["playwright", "testing", "automation", "llm", "ai", "test-generation"],
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Testing"],
-  "activationEvents": ["workspaceContains:**/.env"],
+  "keywords": [
+    "playwright",
+    "testing",
+    "automation",
+    "llm",
+    "ai",
+    "test-generation"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/.env"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
