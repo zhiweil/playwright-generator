@@ -113,7 +113,7 @@ export default defineConfig({
         "test:headed": "playwright test --headed --grep",
         "test:browser": "playwright test --grep",
         "test:video": "playwright test --grep",
-        report: "playwright show-report --port 9324",
+        report: "node report.js",
       },
       devDependencies: {
         "@playwright/test": "^1.40.0",
@@ -263,6 +263,34 @@ export default defineConfig({
     );
     console.log(chalk.green("✓ Created SauceDemo sample test cases"));
 
+    // Create report.js — kills port 9324 then launches playwright show-report
+    const reportScript = `const { execSync, spawn } = require('child_process');
+const PORT = 9324;
+
+// Kill any process already using the port (cross-platform)
+try {
+  if (process.platform === 'win32') {
+    const result = execSync('netstat -ano | findstr :' + PORT, { encoding: 'utf8', stdio: ['pipe','pipe','ignore'] });
+    const lines = result.trim().split('\\n');
+    const pids = [...new Set(lines.map(l => l.trim().split(/\\s+/).pop()).filter(Boolean))];
+    pids.forEach(pid => { try { execSync('taskkill /PID ' + pid + ' /F', { stdio: 'ignore' }); } catch (_) {} });
+  } else {
+    execSync('lsof -ti:' + PORT + ' | xargs kill -9', { stdio: 'ignore', shell: true });
+  }
+} catch (_) {}
+
+// Small delay to ensure port is released
+setTimeout(() => {
+  const proc = spawn(
+    process.platform === 'win32' ? 'npx.cmd' : 'npx',
+    ['playwright', 'show-report', '--port', String(PORT)],
+    { stdio: 'inherit', shell: false }
+  );
+  proc.on('error', err => { console.error('Failed to start report server:', err.message); });
+}, 500);
+`;
+    await fs.writeFile(path.join(projectRoot, "report.js"), reportScript);
+    console.log(chalk.green("✓ Created report.js"));
     // Create GitHub Actions workflow
     const workflow = `name: Playwright Tests
 
