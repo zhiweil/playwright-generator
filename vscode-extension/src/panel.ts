@@ -27,7 +27,6 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((msg) => this._handleMessage(msg));
 
-    // Send initial data once the view is ready
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) { this._sendInitialData(); }
     });
@@ -38,11 +37,18 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
 
   private _sendInitialData(): void {
     if (!this._view) { return; }
+    // Send env config immediately so the panel renders without waiting for file scans
     const env = readEnv(this._workspaceRoot);
-    const testCaseIds = scanTestCaseIds(this._workspaceRoot);
-    const tags = scanTags(this._workspaceRoot);
     const customEnv = readCustomEnv(this._workspaceRoot);
-    this._view.webview.postMessage({ command: "init", env, testCaseIds, tags, customEnv });
+    this._view.webview.postMessage({ command: "init", env, testCaseIds: [], tags: [], customEnv });
+    // Scan files asynchronously and push results once ready
+    Promise.all([
+      scanTestCaseIds(this._workspaceRoot),
+      scanTags(this._workspaceRoot),
+    ]).then(([testCaseIds, tags]) => {
+      this._view?.webview.postMessage({ command: "updateTestCaseIds", testCaseIds });
+      this._view?.webview.postMessage({ command: "updateTags", tags });
+    });
   }
 
   private _setupWatchers(): void {
@@ -53,13 +59,15 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     const generatedWatcher = vscode.workspace.createFileSystemWatcher("**/generated/**/*.test.ts");
 
     const refreshIds = () => {
-      const testCaseIds = scanTestCaseIds(this._workspaceRoot);
-      this._view?.webview.postMessage({ command: "updateTestCaseIds", testCaseIds });
+      scanTestCaseIds(this._workspaceRoot).then((testCaseIds) => {
+        this._view?.webview.postMessage({ command: "updateTestCaseIds", testCaseIds });
+      });
     };
 
     const refreshTags = () => {
-      const tags = scanTags(this._workspaceRoot);
-      this._view?.webview.postMessage({ command: "updateTags", tags });
+      scanTags(this._workspaceRoot).then((tags) => {
+        this._view?.webview.postMessage({ command: "updateTags", tags });
+      });
     };
 
     testsWatcher.onDidChange(refreshIds);
