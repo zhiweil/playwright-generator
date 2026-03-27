@@ -183,11 +183,13 @@ RETRIES=1                           # Number of retries on failure
 
 ```
 [TC-0001] [SMOKE] [LOGIN]
-User logs in with valid credentials
-Given the user is on the login page
-When the user enters valid username and password
-And clicks the login button
-Then the user should be redirected to the dashboard
+
+# User logs in with valid credentials
+
+- Given the user is on the login page
+- When the user enters valid username and password
+- And clicks the login button
+- Then the user should be redirected to the dashboard
 ```
 
 ### Sample Test Cases

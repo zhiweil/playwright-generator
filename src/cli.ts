@@ -10,7 +10,7 @@ const program = new Command();
 program
   .name("playwright-generator")
   .description("Generate Playwright test cases from natural language using LLM")
-  .version("1.0.43");
+  .version("1.0.44");
 
 // Init command
 program
@@ -83,11 +83,9 @@ File name: *.test.md
 
 Format:
 -------
-# Test Case: <Title>
-
 [TC-XXXX] [TAG1] [TAG2]
 
-## Description
+# Test case title
 
 - Given the initial state or precondition
 - When the user performs an action
@@ -97,11 +95,9 @@ Format:
 
 Example:
 --------
-# Test Case: User Login
-
 [TC-0001] [SMOKE] [LOGIN]
 
-## User logs in with valid credentials
+# User logs in with valid credentials
 
 - Given the user is on the login page
 - When the user enters username and password

@@ -169,6 +169,7 @@ function extractTestCaseContent(fileContent: string, testCaseId: string): string
   let startIndex = -1;
   let endIndex = lines.length;
 
+  // Find the tag line containing this test case ID
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes(`[${testCaseId}]`)) {
       startIndex = i;
@@ -180,18 +181,9 @@ function extractTestCaseContent(fileContent: string, testCaseId: string): string
     throw new Error(`Test case [${testCaseId}] not found in file`);
   }
 
-  for (let i = startIndex - 1; i >= 0; i--) {
-    if (/^#{1,2}\s+Test Case:/i.test(lines[i].trim())) {
-      startIndex = i;
-      break;
-    }
-    if (i === 0) {
-      startIndex = 0;
-    }
-  }
-
+  // Find the next tag line (start of next test case)
   for (let i = startIndex + 1; i < lines.length; i++) {
-    if (/^#{1,2}\s+Test Case:/i.test(lines[i].trim()) && i > startIndex) {
+    if (/\[TC-[A-Z0-9_-]+\]/i.test(lines[i])) {
       endIndex = i;
       break;
     }

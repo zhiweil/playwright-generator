@@ -154,11 +154,9 @@ export default defineConfig({
     console.log(chalk.green("✓ Created tsconfig.json"));
 
     // Create sample test cases
-    const saucedemoSampleContent = `# Test Case: Complete Purchase Flow
+    const saucedemoSampleContent = `[TC-SAMPLE-0001] [SMOKE] [PURCHASE] [END-TO-END]
 
-[TC-SAMPLE-0001] [SMOKE] [PURCHASE] [END-TO-END]
-
-## Complete e-commerce purchase flow from login to order confirmation
+# Complete e-commerce purchase flow from login to order confirmation
 
 - Given the user navigates to the SauceDemo login page at https://saucedemo.com
 - When the user enters "standard_user" as the username
@@ -199,11 +197,9 @@ export default defineConfig({
 - And a success message "Thank you for your order!" should be displayed
 - And the order number should be shown
 
-# Test Case: Product Browsing and Cart Management
-
 [TC-SAMPLE-0002] [REGRESSION] [BROWSING] [CART]
 
-## Browse products, sort items, and manage cart contents
+# Browse products, sort items, and manage cart contents
 
 - Given the user is logged in to SauceDemo with valid credentials
 - When the user is on the products page
