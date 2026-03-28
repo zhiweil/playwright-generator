@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
+import { execSync } from "child_process";
 import { readEnv, writeEnv, readCustomEnv, writeCustomEnv, EnvConfig } from "./envManager";
 import { scanTestCaseIds, scanTags } from "./testCaseScanner";
 
@@ -101,12 +102,20 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   }
 
   private _stopReportServer(): void {
-    // Send kill command for port 9324 without blocking
-    const terminal = this._getOrCreateTerminal();
-    if (process.platform === "win32") {
-      terminal.sendText(`for /f "tokens=5" %a in ('netstat -ano ^| findstr :9324') do taskkill /PID %a /F 2>nul & rem`);
-    } else {
-      terminal.sendText(`lsof -ti:9324 | xargs kill -9 2>/dev/null; true`);
+    try {
+      if (process.platform === "win32") {
+        const result = execSync(`netstat -ano | findstr :9324`, { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] });
+        const pids = [...new Set(
+          result.trim().split("\n")
+            .map(l => l.trim().split(/\s+/).pop())
+            .filter(Boolean)
+        )];
+        pids.forEach(pid => { try { execSync(`taskkill /PID ${pid} /F`, { stdio: "ignore" }); } catch (_) {} });
+      } else {
+        execSync(`lsof -ti:9324 | xargs kill -9 2>/dev/null || true`, { stdio: "ignore" as const });
+      }
+    } catch (_) {
+      // No process on port — nothing to do
     }
   }
 
@@ -114,21 +123,18 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     if (this._isRunning) { return; }
     this._setRunning(true);
 
+    // Kill report server synchronously in extension host before sending command
+    this._stopReportServer();
+
     const terminal = this._getOrCreateTerminal();
     terminal.show();
 
-    // Stop report server first, then run the command
-    // Use a sentinel echo to signal completion so we can re-enable controls
     if (process.platform === "win32") {
-      this._stopReportServer();
       terminal.sendText(`cmd /c "cd /d "${this._workspaceRoot}" && ${cmd}"`);
     } else {
-      terminal.sendText(`lsof -ti:9324 | xargs kill -9 2>/dev/null; true && cd "${this._workspaceRoot}" && ${cmd}`);
+      terminal.sendText(`cd "${this._workspaceRoot}" && ${cmd}`);
     }
 
-    // Re-enable controls after a short delay — terminal commands are fire-and-forget
-    // We re-enable when the terminal is closed or after the command likely finishes
-    // For long-running commands (test runs), user can close terminal to re-enable
     this._setRunning(false);
   }
 
