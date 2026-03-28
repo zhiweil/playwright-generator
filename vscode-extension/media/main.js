@@ -8,6 +8,29 @@
   function setVal(id, v) { const e = el(id); if (e) { e.value = v ?? ""; } }
   function setChecked(id, v) { const e = el(id); if (e) { e.checked = v === "true" || v === true; } }
 
+  // ── Running state ───────────────────────────────────────────────────────────
+  var INTERACTIVE = [
+    "AI_MODEL", "CLAUDE_API_KEY", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT",
+    "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_API_VERSION", "CHATGPT_API_KEY", "CHATGPT_MODEL",
+    "LOCAL_LLM_URL", "LOCAL_LLM_MODEL", "BROWSER", "VIDEO", "HEADLESS", "TIMEOUT", "RETRIES",
+    "tc-search", "tc-select", "tag-search", "tag-select",
+    "btn-generate", "btn-run-all", "btn-run-tag", "btn-run-headed", "btn-debug", "btn-report", "btn-add-env"
+  ];
+
+  function setRunning(running) {
+    INTERACTIVE.forEach(function (id) {
+      var e = el(id);
+      if (e) { e.disabled = running; }
+    });
+    // Also disable any env-row inputs and delete buttons
+    el("custom-env-rows").querySelectorAll("input, button").forEach(function (e) {
+      e.disabled = running;
+    });
+    var banner = el("running-banner");
+    if (running) { banner.classList.remove("hidden"); }
+    else { banner.classList.add("hidden"); }
+  }
+
   // ── Tabs ──────────────────────────────────────────────────────────────────
   document.querySelectorAll(".tab").forEach(function (tab) {
     tab.addEventListener("click", function () {
@@ -200,7 +223,6 @@
         allTags = msg.tags;
         populateList("tc-select", allTestCaseIds);
         populateList("tag-select", allTags);
-        // Load custom env rows
         el("custom-env-rows").innerHTML = "";
         if (msg.customEnv) {
           Object.keys(msg.customEnv).forEach(function (key) {
@@ -215,6 +237,9 @@
       case "updateTags":
         allTags = msg.tags;
         filterList("tag-select", "tag-search", allTags);
+        break;
+      case "setRunning":
+        setRunning(msg.running);
         break;
     }
   });

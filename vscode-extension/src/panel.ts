@@ -10,6 +10,8 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private _workspaceRoot: string;
   private _watchers: vscode.FileSystemWatcher[] = [];
+  private _terminal: vscode.Terminal | undefined;
+  private _isRunning = false;
 
   constructor(private readonly _extensionUri: vscode.Uri) {
     this._workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
@@ -31,17 +33,23 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
       if (webviewView.visible) { this._sendInitialData(); }
     });
 
+    // Detect when terminal is closed so we can re-enable controls
+    vscode.window.onDidCloseTerminal((t) => {
+      if (t === this._terminal) {
+        this._terminal = undefined;
+        this._setRunning(false);
+      }
+    });
+
     this._setupWatchers();
     this._sendInitialData();
   }
 
   private _sendInitialData(): void {
     if (!this._view) { return; }
-    // Send env config immediately so the panel renders without waiting for file scans
     const env = readEnv(this._workspaceRoot);
     const customEnv = readCustomEnv(this._workspaceRoot);
     this._view.webview.postMessage({ command: "init", env, testCaseIds: [], tags: [], customEnv });
-    // Scan files asynchronously and push results once ready
     Promise.all([
       scanTestCaseIds(this._workspaceRoot),
       scanTags(this._workspaceRoot),
@@ -80,16 +88,62 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     this._watchers.push(testsWatcher, generatedWatcher);
   }
 
+  private _setRunning(running: boolean): void {
+    this._isRunning = running;
+    this._view?.webview.postMessage({ command: "setRunning", running });
+  }
+
+  private _getOrCreateTerminal(): vscode.Terminal {
+    if (!this._terminal || this._terminal.exitStatus !== undefined) {
+      this._terminal = vscode.window.createTerminal("Playwright Generator");
+    }
+    return this._terminal;
+  }
+
+  private _stopReportServer(): void {
+    // Send kill command for port 9324 without blocking
+    const terminal = this._getOrCreateTerminal();
+    if (process.platform === "win32") {
+      terminal.sendText(`for /f "tokens=5" %a in ('netstat -ano ^| findstr :9324') do taskkill /PID %a /F 2>nul & rem`);
+    } else {
+      terminal.sendText(`lsof -ti:9324 | xargs kill -9 2>/dev/null; true`);
+    }
+  }
+
+  private _runInTerminal(cmd: string): void {
+    if (this._isRunning) { return; }
+    this._setRunning(true);
+
+    const terminal = this._getOrCreateTerminal();
+    terminal.show();
+
+    // Stop report server first, then run the command
+    // Use a sentinel echo to signal completion so we can re-enable controls
+    if (process.platform === "win32") {
+      this._stopReportServer();
+      terminal.sendText(`cmd /c "cd /d "${this._workspaceRoot}" && ${cmd}"`);
+    } else {
+      terminal.sendText(`lsof -ti:9324 | xargs kill -9 2>/dev/null; true && cd "${this._workspaceRoot}" && ${cmd}`);
+    }
+
+    // Re-enable controls after a short delay — terminal commands are fire-and-forget
+    // We re-enable when the terminal is closed or after the command likely finishes
+    // For long-running commands (test runs), user can close terminal to re-enable
+    this._setRunning(false);
+  }
+
   private _handleMessage(msg: { command: string; [key: string]: unknown }): void {
+    if (this._isRunning && msg.command !== "saveEnv" && msg.command !== "saveCustomEnv") {
+      return;
+    }
+
     switch (msg.command) {
       case "saveEnv":
         writeEnv(this._workspaceRoot, msg.env as EnvConfig);
-        vscode.window.showInformationMessage("Playwright Generator: .env saved.");
         break;
 
       case "saveCustomEnv":
         writeCustomEnv(this._workspaceRoot, msg.customEnv as Record<string, string>);
-        vscode.window.showInformationMessage("Playwright Generator: .env saved.");
         break;
 
       case "generate": {
@@ -130,16 +184,6 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     }
   }
 
-  private _runInTerminal(cmd: string): void {
-    const terminal = vscode.window.createTerminal("Playwright Generator");
-    terminal.show();
-    if (process.platform === "win32") {
-      terminal.sendText(`cmd /c "cd /d "${this._workspaceRoot}" && ${cmd}"`);
-    } else {
-      terminal.sendText(`cd "${this._workspaceRoot}" && ${cmd}`);
-    }
-  }
-
   private _getHtml(webview: vscode.Webview): string {
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "main.js"));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "style.css"));
@@ -160,6 +204,8 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     <button class="tab" data-tab="generate">Generate</button>
     <button class="tab" data-tab="run">Run</button>
   </div>
+
+  <div id="running-banner" class="hidden">Running...</div>
 
   <div id="tab-config" class="tab-panel">
     <label>AI Model</label>

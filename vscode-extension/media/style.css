@@ -185,3 +185,25 @@ button:hover {
   color: var(--vscode-descriptionForeground);
   margin-bottom: 6px;
 }
+
+#running-banner {
+  background: var(--vscode-statusBarItem-warningBackground, #cc6633);
+  color: var(--vscode-statusBarItem-warningForeground, #ffffff);
+  text-align: center;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin: 0 -0px;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+input:disabled,
+select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
