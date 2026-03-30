@@ -15,9 +15,8 @@ export async function initializeProject(projectPath: string): Promise<void> {
     // Create directory structure
     const directories = [
       "tests",
-      "generated",
-      "page-objects",
-      "utils",
+      "helpers",
+      "generated/helpers",
       "audit/screenshots",
       ".github/workflows",
     ];
