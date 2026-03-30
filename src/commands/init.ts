@@ -66,6 +66,7 @@ config();
 
 export default defineConfig({
   testDir: './generated',
+  testMatch: '**/*.test.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

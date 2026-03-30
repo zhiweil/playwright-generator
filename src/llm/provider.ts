@@ -39,7 +39,7 @@ The generated code should:
 - Do NOT omit any tags. Do NOT add extra tags.
 - If helper functions are needed, they are always static methods in helper classes, so do not create instances of helper classes.
 - Please scan folder /generated/helpers/ for existing helper classes and methods.
-- Please inject a import at the beginning of the test file for any helper classes used, e.g. import { HelperClassName } from '../helpers/HelperFileName';
+- Please inject a import at the beginning of the test file for any helper classes used, e.g. import { HelperClassName } from './helpers/HelperFileName';
 - Please always call the methods by prefixing with the class name, e.g. HelperClass}.MethodName()
 
 - Check the grammar and spelling of the test case and correct any errors in the generated code.
