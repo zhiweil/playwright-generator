@@ -11,7 +11,7 @@ const program = new Command();
 program
   .name("playwright-generator")
   .description("Generate Playwright test cases from natural language using LLM")
-  .version("1.0.46");
+  .version("1.0.47");
 
 // Init command
 program
@@ -72,7 +72,9 @@ program
 // Generate-helper command
 program
   .command("generate-helper <helperName>")
-  .description("Generate a Playwright helper class from a natural language definition in helpers/")
+  .description(
+    "Generate a Playwright helper class from a natural language definition in helpers/",
+  )
   .option(
     "-m, --model <model>",
     "LLM model to use (claude, azure-openai, chatgpt or local)",
