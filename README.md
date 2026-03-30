@@ -15,6 +15,7 @@ This module streamlines the generation of Playwright test cases by integrating w
   - [Preset Test Framework](#preset-test-framework)
   - [Test Cases Written in Natural Language](#test-cases-written-in-natural-language)
   - [Generation](#generation)
+  - [Helper Generation](#helper-generation)
   - [Test Results & Reporting](#test-results--reporting)
   - [Execution and Debugging](#execution-and-debugging)
   - [Advanced Features](#advanced-features)
@@ -125,8 +126,12 @@ The installed module will have amazing features to facilitate your day-to-day te
 project-root/
 ├── tests/                    # Natural language test cases (includes sample test cases)
 │   └── *.test.md
+├── helpers/                  # Natural language helper definitions
+│   └── *.md
 ├── generated/                # Generated Playwright test code
-│   └── generated.test.ts
+│   ├── generated.test.ts
+│   └── helpers/              # Generated helper classes
+│       └── *.ts
 ├── page-objects/             # Page Object Models (optional)
 │   └── *.po.ts
 ├── utils/                    # Helper utilities
@@ -250,6 +255,83 @@ npx playwright-generator generate --tc TC-0001 --output login.test.ts
 npx playwright-generator generate --tc TC-0001,TC-0002,TC-0003
 ```
 
+### Helper Generation
+
+Helpers are reusable TypeScript classes that encapsulate common Playwright actions (e.g. login, navigation, form filling). They are defined in natural language in the `helpers/` folder and generated into `generated/helpers/` as TypeScript classes.
+
+**Helper Definition Format (`helpers/LoginHelper.md`)**:
+
+```
+[HELPER: LoginHelper]
+# This is a helper class for login related actions
+
+[HELPER-ACTION: login]
+## This action is for logging in a user
+- go to https://somewebsite.com
+- URL https://somewebsite.com/login should be loaded
+- input username as "user1"
+- input password as "password"
+- click the button with text "Log in"
+- URL https://somewebsite.com/home should be loaded
+
+[HELPER-ACTION: logout]
+## This action is for logging out a user
+- click the button with text "Logout"
+- URL https://somewebsite.com/login should be loaded
+```
+
+**Format Rules**:
+
+- First non-empty line: `[HELPER: HelperName]` — name must start with a letter, contain only letters, numbers, and underscores
+- Second non-empty line: `# Description` — description of the helper class
+- Each action starts with `[HELPER-ACTION: actionName]` — same naming rules as helper name
+- Action description: `## Description` on the next non-empty line
+- Action details: bullet points describing the steps
+- Each action is generated as a `static async` method on the helper class
+
+**Generation Commands**:
+
+```bash
+# Generate a helper class (default: claude)
+npx playwright-generator generate-helper LoginHelper
+
+# Generate with a specific model
+npx playwright-generator generate-helper LoginHelper --model azure-openai
+npx playwright-generator generate-helper LoginHelper --model chatgpt
+npx playwright-generator generate-helper LoginHelper --model local
+```
+
+**Output**: The generated helper class is written to `generated/helpers/LoginHelper.ts`:
+
+```typescript
+import { Page } from '@playwright/test';
+
+/**
+ * This is a helper class for login related actions
+ */
+export class LoginHelper {
+  static async login(page: Page): Promise<void> {
+    // generated implementation
+  }
+
+  static async logout(page: Page): Promise<void> {
+    // generated implementation
+  }
+}
+```
+
+**Using helpers in test cases**: Reference the generated helper in your natural language test case descriptions, and the LLM will use it when generating test code:
+
+```
+[TC-0001] [SMOKE] [LOGIN]
+
+# User completes a purchase after logging in
+
+- Use LoginHelper.login() to log in
+- When the user adds an item to the cart
+- Then the user completes checkout
+```
+
 ### Test Results & Reporting
 
 - Test execution produces detailed reports with pass/fail status
@@ -338,7 +420,7 @@ Workflow file location: `.github/workflows/playwright-tests.yml`
 4. **Code Review**: Always review generated code before committing
 5. **Page Objects**: Use POM for maintainability as your test suite grows
 6. **Assertions**: Be explicit about what you're asserting
-7. **Wait Strategies**: Use Playwright's built-in auto-waiting; avoid hardcoded waits
+8. **Helper Classes**: Use `generate-helper` to create reusable helper classes for common actions, reducing duplication across test cases
 
 ### Troubleshooting
 
@@ -352,6 +434,8 @@ Workflow file location: `.github/workflows/playwright-tests.yml`
 | `Generated code doesn't compile`    | Review the natural language description for clarity; regenerate with a refined prompt                                                                                                                          |
 | `Tests pass locally but fail in CI` | Check `BASE_URL` environment variable and add debugging with screenshots                                                                                                                                       |
 | `Selector not found`                | Ensure selectors are unique and reference current UI state                                                                                                                                                     |
+| `Helper definition not found`       | Ensure the helper file exists in `helpers/` and the `[HELPER: Name]` tag matches exactly                                                                                                                       |
+| `No HELPER-ACTION sections found`   | Add at least one `[HELPER-ACTION: actionName]` section to the helper definition file                                                                                                                           |
 | `ECONNREFUSED` (local LLM)          | Ollama server is not running — run `ollama serve`                                                                                                                                                              |
 | `model not found` (local LLM)       | Run `ollama pull <model>` first                                                                                                                                                                                |
 | Slow local LLM generation           | Local models are slower than cloud APIs; expect 30–120s; try `mistral` for speed                                                                                                                               |

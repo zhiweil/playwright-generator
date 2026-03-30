@@ -1,5 +1,5 @@
 import axios from "axios";
-import { LLMProvider, LLMPrompt, GeneratedCode } from "./provider";
+import { LLMProvider, LLMPrompt, HelperPrompt, GeneratedCode } from "./provider";
 
 export class LocalLLMProvider extends LLMProvider {
   private baseUrl: string;
@@ -55,6 +55,22 @@ export class LocalLLMProvider extends LLMProvider {
         ? `HTTP ${error.response.status}: ${JSON.stringify(error.response.data)}`
         : error.message;
       throw new Error(`Failed to generate code with local LLM: ${errorMessage}`);
+    }
+  }
+
+  async generateHelperAction(prompt: HelperPrompt): Promise<GeneratedCode> {
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/v1/chat/completions`,
+        { model: this.model, messages: [{ role: "user", content: this.buildHelperActionPrompt(prompt) }], temperature: 0.2, stream: false },
+        { headers: { "Content-Type": "application/json" }, timeout: 120000 },
+      );
+      const code = response.data.choices?.[0]?.message?.content || "";
+      if (!code.trim()) { throw new Error("Empty response from local LLM"); }
+      return { code, timestamp: new Date(), model: `local/${this.model}`, testCaseId: prompt.actionName };
+    } catch (error: any) {
+      const msg = error.response ? `HTTP ${error.response.status}: ${JSON.stringify(error.response.data)}` : error.message;
+      throw new Error(`Failed to generate helper action with local LLM: ${msg}`);
     }
   }
 }

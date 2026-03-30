@@ -1,5 +1,5 @@
 import axios from "axios";
-import { LLMProvider, LLMPrompt, GeneratedCode } from "./provider";
+import { LLMProvider, LLMPrompt, HelperPrompt, GeneratedCode } from "./provider";
 
 export class AzureOpenAIProvider extends LLMProvider {
   private apiKey: string;
@@ -65,6 +65,22 @@ export class AzureOpenAIProvider extends LLMProvider {
         ? `HTTP ${error.response.status}: ${error.response.data?.error?.message || error.response.data}`
         : error.message;
       throw new Error(`Failed to generate code with Azure OpenAI: ${errorMessage}`);
+    }
+  }
+
+  async generateHelperAction(prompt: HelperPrompt): Promise<GeneratedCode> {
+    try {
+      const response = await axios.post(
+        this.url,
+        { messages: [{ role: "user", content: this.buildHelperActionPrompt(prompt) }], max_tokens: 3500, temperature: 0.2 },
+        { headers: { "api-key": this.apiKey, "Content-Type": "application/json" }, timeout: 30000 },
+      );
+      const code = response.data.choices?.[0]?.message?.content || "";
+      if (!code.trim()) { throw new Error("Empty response from Azure OpenAI"); }
+      return { code, timestamp: new Date(), model: "azure-openai", testCaseId: prompt.actionName };
+    } catch (error: any) {
+      const msg = error.response ? `HTTP ${error.response.status}: ${error.response.data?.error?.message || error.response.data}` : error.message;
+      throw new Error(`Failed to generate helper action with Azure OpenAI: ${msg}`);
     }
   }
 }

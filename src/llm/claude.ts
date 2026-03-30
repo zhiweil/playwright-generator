@@ -1,5 +1,5 @@
 import axios from "axios";
-import { LLMProvider, LLMPrompt, GeneratedCode } from "./provider";
+import { LLMProvider, LLMPrompt, HelperPrompt, GeneratedCode } from "./provider";
 
 export class ClaudeProvider extends LLMProvider {
   private apiKey: string;
@@ -119,6 +119,29 @@ export class ClaudeProvider extends LLMProvider {
       }
 
       throw new Error(`Failed to generate code with Claude: ${errorMessage}`);
+    }
+  }
+
+  async generateHelperAction(prompt: HelperPrompt): Promise<GeneratedCode> {
+    try {
+      const response = await axios.post(
+        this.baseUrl,
+        {
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 3500,
+          messages: [{ role: "user", content: this.buildHelperActionPrompt(prompt) }],
+        },
+        {
+          headers: { "x-api-key": this.apiKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+          timeout: 30000,
+        },
+      );
+      const code = response.data.content?.[0]?.text || "";
+      if (!code.trim()) { throw new Error("Empty response from Claude"); }
+      return { code, timestamp: new Date(), model: "claude", testCaseId: prompt.actionName };
+    } catch (error: any) {
+      const msg = error.response ? `HTTP ${error.response.status}: ${error.response.data?.error?.message || error.response.data}` : error.message;
+      throw new Error(`Failed to generate helper action with Claude: ${msg}`);
     }
   }
 }

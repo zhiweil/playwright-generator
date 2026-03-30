@@ -1,5 +1,5 @@
 import axios from "axios";
-import { LLMProvider, LLMPrompt, GeneratedCode } from "./provider";
+import { LLMProvider, LLMPrompt, HelperPrompt, GeneratedCode } from "./provider";
 
 export class ChatGPTProvider extends LLMProvider {
   private apiKey: string;
@@ -57,6 +57,22 @@ export class ChatGPTProvider extends LLMProvider {
         ? `HTTP ${error.response.status}: ${error.response.data?.error?.message || error.response.data}`
         : error.message;
       throw new Error(`Failed to generate code with ChatGPT: ${errorMessage}`);
+    }
+  }
+
+  async generateHelperAction(prompt: HelperPrompt): Promise<GeneratedCode> {
+    try {
+      const response = await axios.post(
+        this.baseUrl,
+        { model: this.model, messages: [{ role: "user", content: this.buildHelperActionPrompt(prompt) }], max_completion_tokens: 3500, temperature: 0.2 },
+        { headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" }, timeout: 30000 },
+      );
+      const code = response.data.choices?.[0]?.message?.content || "";
+      if (!code.trim()) { throw new Error("Empty response from ChatGPT"); }
+      return { code, timestamp: new Date(), model: "chatgpt", testCaseId: prompt.actionName };
+    } catch (error: any) {
+      const msg = error.response ? `HTTP ${error.response.status}: ${error.response.data?.error?.message || error.response.data}` : error.message;
+      throw new Error(`Failed to generate helper action with ChatGPT: ${msg}`);
     }
   }
 }

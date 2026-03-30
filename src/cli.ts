@@ -3,6 +3,7 @@
 import { Command } from "commander";
 import { initializeProject } from "./commands/init";
 import { generateTestCode } from "./commands/generate";
+import { generateHelper } from "./commands/generate-helper";
 import chalk from "chalk";
 
 const program = new Command();
@@ -62,6 +63,29 @@ program
     } catch (error) {
       console.error(
         chalk.red("Generation failed"),
+        error instanceof Error ? error.message : error,
+      );
+      process.exit(1);
+    }
+  });
+
+// Generate-helper command
+program
+  .command("generate-helper <helperName>")
+  .description("Generate a Playwright helper class from a natural language definition in helpers/")
+  .option(
+    "-m, --model <model>",
+    "LLM model to use (claude, azure-openai, chatgpt or local)",
+  )
+  .action(async (helperName, options) => {
+    try {
+      await generateHelper(process.cwd(), {
+        helperName,
+        model: options.model,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red("Helper generation failed"),
         error instanceof Error ? error.message : error,
       );
       process.exit(1);
