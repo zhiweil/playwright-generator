@@ -298,14 +298,21 @@ async function appendTestCodeToFile(
 
   let currentContent = await fs.readFile(filePath, "utf-8");
 
-  const playwrightImport = "import { test, expect } from '@playwright/test';";
-  if (currentContent.includes(playwrightImport)) {
-    code = code
+  // Strip any import lines from generated code that already exist in the file
+  const existingImports = new Set(
+    currentContent
       .split("\n")
-      .filter((line) => line.trim() !== playwrightImport)
-      .join("\n")
-      .trim();
-  }
+      .filter(line => line.trim().startsWith("import "))
+      .map(line => line.trim())
+  );
+  code = code
+    .split("\n")
+    .filter(line => {
+      const trimmed = line.trim();
+      return !trimmed.startsWith("import ") || !existingImports.has(trimmed);
+    })
+    .join("\n")
+    .trim();
 
   while (true) {
     const idIndex = currentContent.indexOf(testCaseId);
