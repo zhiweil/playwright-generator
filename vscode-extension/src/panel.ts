@@ -95,6 +95,9 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     generatedWatcher.onDidChange(refreshTags);
     generatedWatcher.onDidCreate(refreshTags);
     generatedWatcher.onDidDelete(refreshTags);
+    generatedWatcher.onDidChange(refreshHelpers);
+    generatedWatcher.onDidCreate(refreshHelpers);
+    generatedWatcher.onDidDelete(refreshHelpers);
     helpersWatcher.onDidChange(refreshHelpers);
     helpersWatcher.onDidCreate(refreshHelpers);
     helpersWatcher.onDidDelete(refreshHelpers);

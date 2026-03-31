@@ -190,8 +190,8 @@
         : "⏳ Not generated yet";
       var actionsClass = h.generated ? "helper-actions-cell" : "helper-actions-cell helper-pending";
       tr.innerHTML =
-        "<td class='helper-name-cell'>" + h.name + "</td>" +
-        "<td class='" + actionsClass + "'>" + actionsText + "</td>";
+        "<td class='helper-name-cell' title='" + h.name + "'>" + h.name + "</td>" +
+        "<td class='" + actionsClass + "' title='" + actionsText + "'>" + actionsText + "</td>";
       // Hide row if search doesn't match
       if (query && !h.name.toLowerCase().includes(query) &&
           !h.actions.some(function (a) { return a.toLowerCase().includes(query); })) {
