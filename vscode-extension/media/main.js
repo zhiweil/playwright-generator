@@ -192,9 +192,8 @@
       tr.innerHTML =
         "<td class='helper-name-cell' title='" + h.name + "'>" + h.name + "</td>" +
         "<td class='" + actionsClass + "' title='" + actionsText + "'>" + actionsText + "</td>";
-      // Hide row if search doesn't match
-      if (query && !h.name.toLowerCase().includes(query) &&
-          !h.actions.some(function (a) { return a.toLowerCase().includes(query); })) {
+      // Hide row if search doesn't match name
+      if (query && !h.name.toLowerCase().includes(query)) {
         tr.hidden = true;
       }
       // Restore selection
@@ -291,6 +290,9 @@
         allTestCaseIds = msg.testCaseIds;
         allTags = msg.tags;
         allHelpers = msg.helpers || [];
+        selectedTcId = "";
+        selectedTag = "";
+        selectedHelperName = "";
         populateList("tc-select", allTestCaseIds);
         populateList("tag-select", allTags);
         populateHelperTable(allHelpers, false);
