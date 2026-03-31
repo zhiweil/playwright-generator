@@ -180,7 +180,9 @@
 
   function populateHelperTable(helpers, preserveSelection) {
     var tbody = el("helper-tbody");
-    var query = el("helper-search").value.toLowerCase();
+    if (!tbody) { return; }
+    var searchEl = el("helper-search");
+    var query = searchEl ? searchEl.value.toLowerCase() : "";
     tbody.innerHTML = "";
     helpers.forEach(function (h) {
       var tr = document.createElement("tr");
@@ -209,14 +211,18 @@
     });
   }
 
-  el("helper-search").addEventListener("input", function () {
-    populateHelperTable(allHelpers, true);
+  document.addEventListener("input", function (e) {
+    if (e.target && e.target.id === "helper-search") {
+      populateHelperTable(allHelpers, true);
+    }
   });
 
-  el("btn-generate-helper").addEventListener("click", function () {
-    var name = selectedHelperName || el("helper-search").value.trim();
-    if (!name) { return; }
-    vscode.postMessage({ command: "generateHelper", helperName: name });
+  document.addEventListener("click", function (e) {
+    if (e.target && e.target.id === "btn-generate-helper") {
+      var name = selectedHelperName || (el("helper-search") ? el("helper-search").value.trim() : "");
+      if (!name) { return; }
+      vscode.postMessage({ command: "generateHelper", helperName: name });
+    }
   });
 
   // ── Buttons ───────────────────────────────────────────────────────────────

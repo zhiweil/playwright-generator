@@ -3,7 +3,7 @@
   "name": "playwright-generator-vscode",
   "displayName": "Playwright Generator",
   "description": "VS Code extension for playwright-generator — configure, generate and run Playwright tests",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "license": "MIT",
   "icon": "media/icon.png",
   "repository": {
