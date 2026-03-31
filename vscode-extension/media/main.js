@@ -320,4 +320,7 @@
         break;
     }
   });
+  // ── Signal ready to extension host ──────────────────────────────────────
+  vscode.postMessage({ command: "ready" });
+
 }());

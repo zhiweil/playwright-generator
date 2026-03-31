@@ -11,8 +11,6 @@ export async function scanHelpers(workspaceRoot: string): Promise<HelperInfo[]> 
   const helpersDir = path.join(workspaceRoot, "helpers");
   const generatedDir = path.join(workspaceRoot, "generated", "helpers");
 
-  const helperTagRegex = /^\[HELPER:\s*([A-Za-z][A-Za-z0-9_]*)\]/m;
-  const actionTagRegex = /^\[HELPER-ACTION:\s*([A-Za-z][A-Za-z0-9_]*)\]/gm;
   const methodRegex = /static\s+async\s+([A-Za-z][A-Za-z0-9_]*)\s*\(/g;
 
   const map = new Map<string, HelperInfo>();
@@ -21,11 +19,10 @@ export async function scanHelpers(workspaceRoot: string): Promise<HelperInfo[]> 
   if (fs.existsSync(helpersDir)) {
     for (const file of await walk(helpersDir, ".md")) {
       const content = await fs.promises.readFile(file, "utf-8");
-      const nameMatch = content.match(helperTagRegex);
-      if (!nameMatch) { continue; }
-      const name = nameMatch[1];
-      if (!map.has(name)) {
-        map.set(name, { name, actions: [], generated: false });
+      const { helperName } = parseHelperMd(content);
+      if (!helperName) { continue; }
+      if (!map.has(helperName)) {
+        map.set(helperName, { name: helperName, actions: [], generated: false });
       }
     }
   }
@@ -34,9 +31,9 @@ export async function scanHelpers(workspaceRoot: string): Promise<HelperInfo[]> 
   if (fs.existsSync(generatedDir)) {
     for (const file of await walk(generatedDir, ".ts")) {
       const content = await fs.promises.readFile(file, "utf-8");
-      // Derive helper name from filename
       const name = path.basename(file, ".ts");
-      const actions = [...content.matchAll(methodRegex)].map(m => m[1]);
+      // Only count non-commented methods
+      const actions = extractActiveMethods(content, methodRegex);
       if (map.has(name)) {
         map.get(name)!.actions = actions;
         map.get(name)!.generated = true;
@@ -49,6 +46,38 @@ export async function scanHelpers(workspaceRoot: string): Promise<HelperInfo[]> 
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Strip HTML comments and return active lines only
+function activeLines(content: string): string[] {
+  // Remove <!-- ... --> blocks (including multiline)
+  const stripped = content.replace(/<!--[\s\S]*?-->/g, "");
+  return stripped.split("\n");
+}
+
+function parseHelperMd(content: string): { helperName: string | null } {
+  const helperTagRegex = /^\[HELPER:\s*([A-Za-z][A-Za-z0-9_]*)\]/;
+  for (const line of activeLines(content)) {
+    const m = line.trim().match(helperTagRegex);
+    if (m) { return { helperName: m[1] }; }
+  }
+  return { helperName: null };
+}
+
+// Extract static async method names from TS, skipping commented-out lines
+function extractActiveMethods(content: string, regex: RegExp): string[] {
+  const results: string[] = [];
+  // Remove block comments /* ... */
+  const noBlock = content.replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const line of noBlock.split("\n")) {
+    const trimmed = line.trim();
+    // Skip single-line comments
+    if (trimmed.startsWith("//")) { continue; }
+    regex.lastIndex = 0;
+    const m = regex.exec(trimmed);
+    if (m) { results.push(m[1]); }
+  }
+  return results;
+}
+
 export async function scanTestCaseIds(workspaceRoot: string): Promise<string[]> {
   const testsDir = path.join(workspaceRoot, "tests");
   if (!fs.existsSync(testsDir)) { return []; }
@@ -58,10 +87,12 @@ export async function scanTestCaseIds(workspaceRoot: string): Promise<string[]> 
 
   for (const file of await walkMd(testsDir)) {
     const content = await fs.promises.readFile(file, "utf-8");
-    const matches = content.match(idRegex) || [];
-    for (const m of matches) {
-      const id = m.slice(1, -1);
-      if (!ids.includes(id)) { ids.push(id); }
+    for (const line of activeLines(content)) {
+      const matches = line.match(idRegex) || [];
+      for (const m of matches) {
+        const id = m.slice(1, -1);
+        if (!ids.includes(id)) { ids.push(id); }
+      }
     }
   }
 
@@ -77,8 +108,13 @@ export async function scanTags(workspaceRoot: string): Promise<string[]> {
 
   for (const file of await walkTs(generatedDir)) {
     const content = await fs.promises.readFile(file, "utf-8");
-    for (const match of content.matchAll(tagRegex)) {
-      tags.add(match[1]);
+    // Remove block comments then skip single-line commented lines
+    const noBlock = content.replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const line of noBlock.split("\n")) {
+      if (line.trim().startsWith("//")) { continue; }
+      for (const match of line.matchAll(tagRegex)) {
+        tags.add(match[1]);
+      }
     }
   }
 

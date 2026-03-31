@@ -43,7 +43,7 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     });
 
     this._setupWatchers();
-    this._sendInitialData();
+    // Do NOT call _sendInitialData here — wait for the webview to signal ready
   }
 
   private _sendInitialData(): void {
@@ -158,6 +158,11 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   }
 
   private _handleMessage(msg: { command: string; [key: string]: unknown }): void {
+    if (msg.command === "ready") {
+      this._sendInitialData();
+      return;
+    }
+
     if (this._isRunning && msg.command !== "saveEnv" && msg.command !== "saveCustomEnv") {
       return;
     }
