@@ -207,3 +207,100 @@ select:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── Helper table ──────────────────────────────────────────────────────────── */
+#tab-helpers {
+  overflow: hidden;
+}
+
+.helper-table {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--vscode-font-size);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.helper-table thead {
+  flex-shrink: 0;
+}
+
+.helper-table tbody {
+  flex: 1;
+  overflow-y: auto;
+  display: block;
+}
+
+.helper-table thead tr,
+.helper-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.helper-table th {
+  background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-sideBar-background));
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-editorGroup-border));
+}
+
+.helper-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.helper-name-cell {
+  width: 38%;
+  font-weight: 500;
+}
+
+.helper-actions-cell {
+  width: 62%;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
+
+.helper-table tbody tr:hover {
+  background: var(--vscode-list-hoverBackground);
+  cursor: pointer;
+}
+
+.helper-table tbody tr.selected {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.helper-table tbody tr.selected td {
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.helper-pending {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+  font-style: italic;
+}
+
+.tab-description {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.tab-description code {
+  font-family: var(--vscode-editor-font-family, monospace);
+  background: var(--vscode-textCodeBlock-background, rgba(128,128,128,0.15));
+  padding: 1px 3px;
+  border-radius: 2px;
+}

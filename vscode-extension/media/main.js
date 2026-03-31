@@ -8,12 +8,13 @@
   function setVal(id, v) { const e = el(id); if (e) { e.value = v ?? ""; } }
   function setChecked(id, v) { const e = el(id); if (e) { e.checked = v === "true" || v === true; } }
 
-  // ── Running state ───────────────────────────────────────────────────────────
+  // ── Running state ─────────────────────────────────────────────────────────
   var INTERACTIVE = [
     "AI_MODEL", "CLAUDE_API_KEY", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT",
     "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_API_VERSION", "CHATGPT_API_KEY", "CHATGPT_MODEL",
     "LOCAL_LLM_URL", "LOCAL_LLM_MODEL", "BROWSER", "VIDEO", "HEADLESS", "TIMEOUT", "RETRIES",
     "tc-search", "tc-select", "tag-search", "tag-select",
+    "helper-search", "btn-generate-helper",
     "btn-generate", "btn-run-all", "btn-run-tag", "btn-run-headed", "btn-debug", "btn-report", "btn-add-env"
   ];
 
@@ -22,7 +23,6 @@
       var e = el(id);
       if (e) { e.disabled = running; }
     });
-    // Also disable any env-row inputs and delete buttons
     el("custom-env-rows").querySelectorAll("input, button").forEach(function (e) {
       e.disabled = running;
     });
@@ -57,7 +57,7 @@
 
   el("AI_MODEL").addEventListener("change", function () { updateModelFields(val("AI_MODEL")); scheduleConfigSave(); });
 
-  // ── Config auto-save ─────────────────────────────────────────────────────────
+  // ── Config auto-save ──────────────────────────────────────────────────────
   var configSaveTimer = null;
 
   function collectEnv() {
@@ -121,9 +121,13 @@
     updateModelFields(env.AI_MODEL);
   }
 
-  // ── Searchable list helpers ───────────────────────────────────────────────
-  function populateList(selectId, items) {
+  // ── Select list helpers ───────────────────────────────────────────────────
+  // Always show ALL items; search box filters visibility via option hiding,
+  // preserving the current selection.
+
+  function populateList(selectId, items, preserveValue) {
     var select = el(selectId);
+    var current = preserveValue !== undefined ? preserveValue : select.value;
     select.innerHTML = "";
     for (var i = 0; i < items.length; i++) {
       var opt = document.createElement("option");
@@ -131,44 +135,109 @@
       opt.textContent = items[i];
       select.appendChild(opt);
     }
+    if (current) { select.value = current; }
   }
 
-  function filterList(selectId, searchId, allItems) {
-    var query = val(searchId).toLowerCase();
-    var filtered = allItems.filter(function (i) { return i.toLowerCase().includes(query); });
-    populateList(selectId, filtered);
+  // Filter by hiding non-matching options, keeping all in DOM
+  function applyListFilter(selectId, query) {
+    var select = el(selectId);
+    var opts = select.querySelectorAll("option");
+    var q = query.toLowerCase();
+    opts.forEach(function (opt) {
+      opt.hidden = q.length > 0 && !opt.value.toLowerCase().includes(q);
+    });
   }
 
   // ── State ─────────────────────────────────────────────────────────────────
   var allTestCaseIds = [];
   var allTags = [];
+  var allHelpers = [];
 
-  // ── TC search ─────────────────────────────────────────────────────────────
-  el("tc-search").addEventListener("input", function () { filterList("tc-select", "tc-search", allTestCaseIds); });
-  el("tc-select").addEventListener("change", function () { el("tc-search").value = val("tc-select"); });
+  // ── TC list ───────────────────────────────────────────────────────────────
+  var selectedTcId = "";
 
-  // ── Tag search ────────────────────────────────────────────────────────────
-  el("tag-search").addEventListener("input", function () { filterList("tag-select", "tag-search", allTags); });
-  el("tag-select").addEventListener("change", function () { el("tag-search").value = val("tag-select"); });
+  el("tc-search").addEventListener("input", function () {
+    applyListFilter("tc-select", val("tc-search"));
+  });
+
+  el("tc-select").addEventListener("change", function () {
+    selectedTcId = val("tc-select");
+  });
+
+  // ── Tag list ──────────────────────────────────────────────────────────────
+  var selectedTag = "";
+
+  el("tag-search").addEventListener("input", function () {
+    applyListFilter("tag-select", val("tag-search"));
+  });
+
+  el("tag-select").addEventListener("change", function () {
+    selectedTag = val("tag-select");
+  });
+
+  // ── Helpers table ─────────────────────────────────────────────────────────
+  var selectedHelperName = "";
+
+  function populateHelperTable(helpers, preserveSelection) {
+    var tbody = el("helper-tbody");
+    var query = el("helper-search").value.toLowerCase();
+    tbody.innerHTML = "";
+    helpers.forEach(function (h) {
+      var tr = document.createElement("tr");
+      tr.setAttribute("data-name", h.name);
+      var actionsText = h.generated
+        ? (h.actions.length > 0 ? h.actions.join(", ") : "—")
+        : "⏳ Not generated yet";
+      var actionsClass = h.generated ? "helper-actions-cell" : "helper-actions-cell helper-pending";
+      tr.innerHTML =
+        "<td class='helper-name-cell'>" + h.name + "</td>" +
+        "<td class='" + actionsClass + "'>" + actionsText + "</td>";
+      // Hide row if search doesn't match
+      if (query && !h.name.toLowerCase().includes(query) &&
+          !h.actions.some(function (a) { return a.toLowerCase().includes(query); })) {
+        tr.hidden = true;
+      }
+      // Restore selection
+      if (preserveSelection && h.name === selectedHelperName) {
+        tr.classList.add("selected");
+      }
+      tr.addEventListener("click", function () {
+        tbody.querySelectorAll("tr").forEach(function (r) { r.classList.remove("selected"); });
+        tr.classList.add("selected");
+        selectedHelperName = h.name;
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  el("helper-search").addEventListener("input", function () {
+    populateHelperTable(allHelpers, true);
+  });
+
+  el("btn-generate-helper").addEventListener("click", function () {
+    var name = selectedHelperName || el("helper-search").value.trim();
+    if (!name) { return; }
+    vscode.postMessage({ command: "generateHelper", helperName: name });
+  });
 
   // ── Buttons ───────────────────────────────────────────────────────────────
   el("btn-generate").addEventListener("click", function () {
-    var tcId = val("tc-select") || val("tc-search");
+    var tcId = selectedTcId || val("tc-search");
     vscode.postMessage({ command: "generate", tcId: tcId });
   });
 
   el("btn-run-all").addEventListener("click", function () { vscode.postMessage({ command: "runAll" }); });
 
   el("btn-run-tag").addEventListener("click", function () {
-    vscode.postMessage({ command: "runByTag", tag: val("tag-select") || val("tag-search") });
+    vscode.postMessage({ command: "runByTag", tag: selectedTag || val("tag-search") });
   });
 
   el("btn-run-headed").addEventListener("click", function () {
-    vscode.postMessage({ command: "runHeaded", tag: val("tag-select") || val("tag-search") });
+    vscode.postMessage({ command: "runHeaded", tag: selectedTag || val("tag-search") });
   });
 
   el("btn-debug").addEventListener("click", function () {
-    vscode.postMessage({ command: "debug", tag: val("tag-select") || val("tag-search") });
+    vscode.postMessage({ command: "debug", tag: selectedTag || val("tag-search") });
   });
 
   el("btn-report").addEventListener("click", function () { vscode.postMessage({ command: "report" }); });
@@ -221,8 +290,10 @@
         applyEnv(msg.env);
         allTestCaseIds = msg.testCaseIds;
         allTags = msg.tags;
+        allHelpers = msg.helpers || [];
         populateList("tc-select", allTestCaseIds);
         populateList("tag-select", allTags);
+        populateHelperTable(allHelpers, false);
         el("custom-env-rows").innerHTML = "";
         if (msg.customEnv) {
           Object.keys(msg.customEnv).forEach(function (key) {
@@ -232,11 +303,17 @@
         break;
       case "updateTestCaseIds":
         allTestCaseIds = msg.testCaseIds;
-        filterList("tc-select", "tc-search", allTestCaseIds);
+        populateList("tc-select", allTestCaseIds, selectedTcId);
+        applyListFilter("tc-select", val("tc-search"));
         break;
       case "updateTags":
         allTags = msg.tags;
-        filterList("tag-select", "tag-search", allTags);
+        populateList("tag-select", allTags, selectedTag);
+        applyListFilter("tag-select", val("tag-search"));
+        break;
+      case "updateHelpers":
+        allHelpers = msg.helpers || [];
+        populateHelperTable(allHelpers, true);
         break;
       case "setRunning":
         setRunning(msg.running);

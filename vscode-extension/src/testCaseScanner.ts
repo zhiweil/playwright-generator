@@ -1,6 +1,54 @@
 import * as fs from "fs";
 import * as path from "path";
 
+export interface HelperInfo {
+  name: string;
+  actions: string[];
+  generated: boolean;
+}
+
+export async function scanHelpers(workspaceRoot: string): Promise<HelperInfo[]> {
+  const helpersDir = path.join(workspaceRoot, "helpers");
+  const generatedDir = path.join(workspaceRoot, "generated", "helpers");
+
+  const helperTagRegex = /^\[HELPER:\s*([A-Za-z][A-Za-z0-9_]*)\]/m;
+  const actionTagRegex = /^\[HELPER-ACTION:\s*([A-Za-z][A-Za-z0-9_]*)\]/gm;
+  const methodRegex = /static\s+async\s+([A-Za-z][A-Za-z0-9_]*)\s*\(/g;
+
+  const map = new Map<string, HelperInfo>();
+
+  // Scan natural language definitions in helpers/
+  if (fs.existsSync(helpersDir)) {
+    for (const file of await walk(helpersDir, ".md")) {
+      const content = await fs.promises.readFile(file, "utf-8");
+      const nameMatch = content.match(helperTagRegex);
+      if (!nameMatch) { continue; }
+      const name = nameMatch[1];
+      if (!map.has(name)) {
+        map.set(name, { name, actions: [], generated: false });
+      }
+    }
+  }
+
+  // Scan generated TypeScript helpers in generated/helpers/
+  if (fs.existsSync(generatedDir)) {
+    for (const file of await walk(generatedDir, ".ts")) {
+      const content = await fs.promises.readFile(file, "utf-8");
+      // Derive helper name from filename
+      const name = path.basename(file, ".ts");
+      const actions = [...content.matchAll(methodRegex)].map(m => m[1]);
+      if (map.has(name)) {
+        map.get(name)!.actions = actions;
+        map.get(name)!.generated = true;
+      } else {
+        map.set(name, { name, actions, generated: true });
+      }
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export async function scanTestCaseIds(workspaceRoot: string): Promise<string[]> {
   const testsDir = path.join(workspaceRoot, "tests");
   if (!fs.existsSync(testsDir)) { return []; }

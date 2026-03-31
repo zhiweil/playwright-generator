@@ -3,7 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { execSync } from "child_process";
 import { readEnv, writeEnv, readCustomEnv, writeCustomEnv, EnvConfig } from "./envManager";
-import { scanTestCaseIds, scanTags } from "./testCaseScanner";
+import { scanTestCaseIds, scanTags, scanHelpers, HelperInfo } from "./testCaseScanner";
 
 export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = "playwrightGenerator.panel";
@@ -50,13 +50,15 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     if (!this._view) { return; }
     const env = readEnv(this._workspaceRoot);
     const customEnv = readCustomEnv(this._workspaceRoot);
-    this._view.webview.postMessage({ command: "init", env, testCaseIds: [], tags: [], customEnv });
+    this._view.webview.postMessage({ command: "init", env, testCaseIds: [], tags: [], helpers: [], customEnv });
     Promise.all([
       scanTestCaseIds(this._workspaceRoot),
       scanTags(this._workspaceRoot),
-    ]).then(([testCaseIds, tags]) => {
+      scanHelpers(this._workspaceRoot),
+    ]).then(([testCaseIds, tags, helpers]) => {
       this._view?.webview.postMessage({ command: "updateTestCaseIds", testCaseIds });
       this._view?.webview.postMessage({ command: "updateTags", tags });
+      this._view?.webview.postMessage({ command: "updateHelpers", helpers });
     });
   }
 
@@ -66,6 +68,8 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
 
     const testsWatcher = vscode.workspace.createFileSystemWatcher("**/tests/**/*.test.md");
     const generatedWatcher = vscode.workspace.createFileSystemWatcher("**/generated/**/*.test.ts");
+    const helpersWatcher = vscode.workspace.createFileSystemWatcher("**/helpers/**/*.md");
+    const generatedHelpersWatcher = vscode.workspace.createFileSystemWatcher("**/generated/helpers/**/*.ts");
 
     const refreshIds = () => {
       scanTestCaseIds(this._workspaceRoot).then((testCaseIds) => {
@@ -79,14 +83,26 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
       });
     };
 
+    const refreshHelpers = () => {
+      scanHelpers(this._workspaceRoot).then((helpers) => {
+        this._view?.webview.postMessage({ command: "updateHelpers", helpers });
+      });
+    };
+
     testsWatcher.onDidChange(refreshIds);
     testsWatcher.onDidCreate(refreshIds);
     testsWatcher.onDidDelete(refreshIds);
     generatedWatcher.onDidChange(refreshTags);
     generatedWatcher.onDidCreate(refreshTags);
     generatedWatcher.onDidDelete(refreshTags);
+    helpersWatcher.onDidChange(refreshHelpers);
+    helpersWatcher.onDidCreate(refreshHelpers);
+    helpersWatcher.onDidDelete(refreshHelpers);
+    generatedHelpersWatcher.onDidChange(refreshHelpers);
+    generatedHelpersWatcher.onDidCreate(refreshHelpers);
+    generatedHelpersWatcher.onDidDelete(refreshHelpers);
 
-    this._watchers.push(testsWatcher, generatedWatcher);
+    this._watchers.push(testsWatcher, generatedWatcher, helpersWatcher, generatedHelpersWatcher);
   }
 
   private _setRunning(running: boolean): void {
@@ -184,6 +200,13 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
         break;
       }
 
+      case "generateHelper": {
+        const helperName = msg.helperName as string;
+        if (!helperName) { return; }
+        this._runInTerminal(`npx playwright-generator generate-helper ${helperName}`);
+        break;
+      }
+
       case "report":
         this._runInTerminal("node report.js");
         break;
@@ -208,12 +231,14 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   <div class="tab-bar">
     <button class="tab active" data-tab="config">Config</button>
     <button class="tab" data-tab="generate">Generate</button>
+    <button class="tab" data-tab="helpers">Helpers</button>
     <button class="tab" data-tab="run">Run</button>
   </div>
 
   <div id="running-banner" class="hidden">Running...</div>
 
   <div id="tab-config" class="tab-panel">
+    <p class="tab-description">Configure your AI model credentials and Playwright settings. Changes are saved automatically to <code>.env</code> in your workspace root.</p>
     <label>AI Model</label>
     <select id="AI_MODEL">
       <option value="claude">Claude</option>
@@ -279,22 +304,37 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   </div>
 
   <div id="tab-generate" class="tab-panel hidden">
+    <p class="tab-description">Select a test case from <code>tests/</code> and click <b>Generate</b> to create a Playwright TypeScript test in <code>generated/</code> using the configured AI model.</p>
     <label>Test Case ID</label>
     <input type="text" id="tc-search" placeholder="Search or select TC ID...">
     <select id="tc-select" size="2"></select>
     <button id="btn-generate">Generate</button>
   </div>
 
+  <div id="tab-helpers" class="tab-panel hidden">
+    <p class="tab-description">Define helpers in <code>helpers/*.md</code> using <code>[HELPER: Name]</code> and <code>[HELPER-ACTION: action]</code> tags. Select a helper below and click <b>Generate Helper</b> to create a reusable TypeScript class in <code>generated/helpers/</code>.</p>
+    <label>Helper</label>
+    <input type="text" id="helper-search" placeholder="Search helper...">
+    <table id="helper-table" class="helper-table">
+      <thead>
+        <tr><th>Helper</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="helper-tbody"></tbody>
+    </table>
+    <button id="btn-generate-helper">Generate Helper</button>
+  </div>
+
   <div id="tab-run" class="tab-panel hidden">
+    <p class="tab-description">Select a tag to filter tests, then run them using the buttons below. HTML reports are generated automatically and can be viewed with <b>View Last Report</b>.</p>
     <label>Tag</label>
     <input type="text" id="tag-search" placeholder="Search or select tag...">
     <select id="tag-select" size="2"></select>
     <div class="button-group">
-      <button id="btn-run-all">All Tests</button>
+      <button id="btn-run-all">Run All Tests</button>
       <button id="btn-run-tag">Run by Tag</button>
-      <button id="btn-run-headed">Run with UI</button>
-      <button id="btn-debug">Debug</button>
-      <button id="btn-report">Report</button>
+      <button id="btn-run-headed">Run with UI by Tag</button>
+      <button id="btn-debug">Debug by Tag</button>
+      <button id="btn-report">View Last Report</button>
     </div>
   </div>
 
