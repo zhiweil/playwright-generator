@@ -144,6 +144,20 @@ function extractMethodCode(raw: string, actionName: string): string {
   return raw.slice(methodIndex).trim();
 }
 
+// Extract existing method names from generated TS, skipping commented lines
+function extractExistingMethods(code: string): Set<string> {
+  const existing = new Set<string>();
+  const noBlock = code.replace(/\/\*[\s\S]*?\*\//g, "");
+  const methodRegex = /static\s+async\s+([A-Za-z][A-Za-z0-9_]*)\s*\(/g;
+  for (const line of noBlock.split("\n")) {
+    if (line.trim().startsWith("//")) { continue; }
+    for (const m of line.matchAll(methodRegex)) {
+      existing.add(m[1]);
+    }
+  }
+  return existing;
+}
+
 export async function generateHelper(
   projectRoot: string,
   options: GenerateHelperOptions,
@@ -183,9 +197,31 @@ export async function generateHelper(
     console.log(chalk.blue(`\nGenerating helper class: ${definition.name}`));
     console.log(chalk.gray(`Found ${definition.actions.length} action(s): ${definition.actions.map(a => a.name).join(", ")}`));
 
-    // Generate each action method individually
-    const methods: string[] = [];
-    for (const action of definition.actions) {
+    await fs.ensureDir(outputDir);
+    const outputFile = path.join(outputDir, `${definition.name}.ts`);
+
+    // Check which actions already exist in the generated file
+    const fileExists = fs.existsSync(outputFile);
+    const existingMethods = fileExists
+      ? extractExistingMethods(await fs.readFile(outputFile, "utf-8"))
+      : new Set<string>();
+
+    const actionsToGenerate = definition.actions.filter(a => !existingMethods.has(a.name));
+    const skipped = definition.actions.filter(a => existingMethods.has(a.name));
+
+    if (skipped.length > 0) {
+      console.log(chalk.gray(`  Skipping already generated: ${skipped.map(a => a.name).join(", ")}`));
+    }
+
+    if (actionsToGenerate.length === 0) {
+      console.log(chalk.green(`\n✓ All actions already generated for ${definition.name}`));
+      console.log(chalk.cyan(`File: ${path.relative(projectRoot, outputFile)}`));
+      return;
+    }
+
+    // Generate only missing action methods
+    const newMethods: string[] = [];
+    for (const action of actionsToGenerate) {
       console.log(chalk.blue(`  Generating action: ${action.name}...`));
 
       const prompt: HelperPrompt = {
@@ -198,28 +234,33 @@ export async function generateHelper(
 
       const generated = await llmProvider.generateHelperAction(prompt);
       const methodCode = extractMethodCode(generated.code, action.name);
-      methods.push(methodCode);
+      newMethods.push(methodCode);
       console.log(chalk.green(`  ✓ Generated action: ${action.name}`));
     }
 
-    // Assemble the full class
-    const indentedMethods = methods.map(m =>
+    const indentedNewMethods = newMethods.map(m =>
       m.split("\n").map(line => (line.trim() ? `  ${line}` : "")).join("\n")
     ).join("\n\n");
 
-    const classCode = `import { Page } from '@playwright/test';
+    if (fileExists) {
+      // Append new methods into the existing class before the closing brace
+      let existing = await fs.readFile(outputFile, "utf-8");
+      const lastBrace = existing.lastIndexOf("}");
+      existing = existing.slice(0, lastBrace).trimEnd() + "\n\n" + indentedNewMethods + "\n}\n";
+      await fs.writeFile(outputFile, existing);
+    } else {
+      // Create the full class from scratch
+      const classCode = `import { Page } from '@playwright/test';
 
 /**
  * ${definition.description}
  */
 export class ${definition.name} {
-${indentedMethods}
+${indentedNewMethods}
 }
 `;
-
-    await fs.ensureDir(outputDir);
-    const outputFile = path.join(outputDir, `${definition.name}.ts`);
-    await fs.writeFile(outputFile, classCode);
+      await fs.writeFile(outputFile, classCode);
+    }
 
     console.log(chalk.green.bold(`\n✓ Helper class generated!`));
     console.log(chalk.cyan(`Generated file: ${path.relative(projectRoot, outputFile)}`));
