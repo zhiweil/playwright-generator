@@ -55,7 +55,11 @@ VIDEO=retain-on-failure
     // Create .env file if it doesn't exist
     const envPath = path.join(projectRoot, ".env");
     if (!fs.existsSync(envPath)) {
-      await fs.writeFile(envPath, envExampleContent + "\n# Custom environment variables can be added below\n");
+      await fs.writeFile(
+        envPath,
+        envExampleContent +
+          "\n# Custom environment variables can be added below\n",
+      );
       console.log(chalk.green("✓ Created .env file"));
     }
 
@@ -109,7 +113,7 @@ export default defineConfig({
       scripts: {
         test: "playwright test",
         "test:case": "playwright test --grep",
-        "test:debug": "playwright test --debug --project=chromium --grep",
+        "test:debug": "playwright test --debug --grep",
         "test:headed": "playwright test --headed --grep",
         "test:browser": "playwright test --grep",
         "test:video": "playwright test --grep",

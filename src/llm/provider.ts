@@ -43,6 +43,12 @@ The generated code should:
 - Please always call the methods by prefixing with the class name, e.g. HelperClass}.MethodName()
 
 - Check the grammar and spelling of the test case and correct any errors in the generated code.
+- Make sure the generated code is syntactically correct TypeScript and can be executed without errors.
+- Make sure the generated code can test different browsers (chromium, firefox, webkit) without using any browser-specific code.
+- Makue sure the generated code is compatible with Playwright version 1.30.0 or later.
+- Make sure the generated code does not use any deprecated Playwright APIs.
+- Make sure the generated code does not include any hardcoded waits (e.g. page.waitForTimeout) and relies on Playwright's auto-waiting features.
+- Make sure the generated code includes proper error handling and assertions to ensure test reliability.
 
 Natural language test case:
 ${prompt.testCase}
