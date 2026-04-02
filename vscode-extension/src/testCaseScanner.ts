@@ -78,11 +78,16 @@ function extractActiveMethods(content: string, regex: RegExp): string[] {
   return results;
 }
 
-export async function scanTestCaseIds(workspaceRoot: string): Promise<string[]> {
+export interface TestCaseEntry {
+  id: string;
+  duplicate: boolean;
+}
+
+export async function scanTestCaseIds(workspaceRoot: string): Promise<TestCaseEntry[]> {
   const testsDir = path.join(workspaceRoot, "tests");
   if (!fs.existsSync(testsDir)) { return []; }
 
-  const ids: string[] = [];
+  const idCounts = new Map<string, number>();
   const idRegex = /\[TC-[A-Z0-9_-]+\]/gi;
 
   for (const file of await walkMd(testsDir)) {
@@ -90,13 +95,15 @@ export async function scanTestCaseIds(workspaceRoot: string): Promise<string[]> 
     for (const line of activeLines(content)) {
       const matches = line.match(idRegex) || [];
       for (const m of matches) {
-        const id = m.slice(1, -1);
-        if (!ids.includes(id)) { ids.push(id); }
+        const id = m.slice(1, -1).toUpperCase();
+        idCounts.set(id, (idCounts.get(id) || 0) + 1);
       }
     }
   }
 
-  return ids.sort();
+  return Array.from(idCounts.entries())
+    .map(([id, count]) => ({ id, duplicate: count > 1 }))
+    .sort((a, b) => a.id.localeCompare(b.id));
 }
 
 export async function scanTags(workspaceRoot: string): Promise<string[]> {

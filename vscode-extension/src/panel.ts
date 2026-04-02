@@ -3,7 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { execSync } from "child_process";
 import { readEnv, writeEnv, readCustomEnv, writeCustomEnv, EnvConfig } from "./envManager";
-import { scanTestCaseIds, scanTags, scanHelpers, HelperInfo } from "./testCaseScanner";
+import { scanTestCaseIds, scanTags, scanHelpers, HelperInfo, TestCaseEntry } from "./testCaseScanner";
 
 export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = "playwrightGenerator.panel";

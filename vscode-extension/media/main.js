@@ -208,12 +208,49 @@
     }
   }
 
+  function populateTcList(entries, preserveValue) {
+    var select = el("tc-select");
+    var current = preserveValue !== undefined ? preserveValue : select.value;
+    select.innerHTML = "";
+    for (var i = 0; i < entries.length; i++) {
+      var entry = entries[i];
+      var opt = document.createElement("option");
+      opt.value = entry.id;
+      opt.textContent = entry.id + (entry.duplicate ? " [Duplicate!]" : "");
+      if (entry.duplicate) {
+        opt.disabled = true;
+        opt.style.color = "var(--vscode-disabledForeground, #888)";
+      }
+      select.appendChild(opt);
+    }
+    if (current) { select.value = current; }
+  }
+
+  function populateTcList(entries, preserveValue) {
+    var select = el("tc-select");
+    var current = preserveValue !== undefined ? preserveValue : select.value;
+    select.innerHTML = "";
+    for (var i = 0; i < entries.length; i++) {
+      var entry = entries[i];
+      var opt = document.createElement("option");
+      opt.value = entry.id;
+      opt.textContent = entry.id + (entry.duplicate ? " [Duplicate!]" : "");
+      if (entry.duplicate) {
+        opt.disabled = true;
+        opt.style.color = "var(--vscode-disabledForeground, #888)";
+      }
+      select.appendChild(opt);
+    }
+    if (current) { select.value = current; }
+  }
+
   // Filter by hiding non-matching options, keeping all in DOM
   function applyListFilter(selectId, query) {
     var select = el(selectId);
     var opts = select.querySelectorAll("option");
     var q = query.toLowerCase();
     opts.forEach(function (opt) {
+      if (opt.disabled) { return; }
       opt.hidden = q.length > 0 && !opt.value.toLowerCase().includes(q);
     });
   }
@@ -267,22 +304,21 @@
       var actionsClass = h.generated
         ? "helper-actions-cell"
         : "helper-actions-cell helper-pending";
-      tr.innerHTML =
-        "<td class='helper-name-cell' title='" +
-        h.name +
-        "'>" +
-        h.name +
-        "</td>" +
-        "<td class='" +
-        actionsClass +
-        "' title='" +
-        actionsText +
-        "'>" +
-        actionsText +
-        "</td>";
+      var td1 = document.createElement("td");
+      td1.className = "helper-name-cell";
+      td1.title = h.name;
+      td1.textContent = h.name;
+      var td2 = document.createElement("td");
+      td2.className = actionsClass;
+      td2.title = actionsText;
+      td2.textContent = actionsText;
+      tr.appendChild(td1);
+      tr.appendChild(td2);
       // Hide row if search doesn't match name
       if (query && !h.name.toLowerCase().includes(query)) {
-        tr.hidden = true;
+        tr.style.display = "none";
+      } else {
+        tr.style.display = "";
       }
       // Restore selection
       if (preserveSelection && h.name === selectedHelperName) {
@@ -369,24 +405,29 @@
     var container = el("custom-env-rows");
     var row = document.createElement("div");
     row.className = "env-row";
-    row.innerHTML =
-      '<input type="text" class="env-key" placeholder="KEY" value="' +
-      (key || "") +
-      '">' +
-      '<input type="text" class="env-val" placeholder="VALUE" value="' +
-      (value || "") +
-      '">' +
-      '<button class="btn-delete" title="Delete">&times;</button>';
-    row.querySelector(".btn-delete").addEventListener("click", function () {
+    var keyInput = document.createElement("input");
+    keyInput.type = "text";
+    keyInput.className = "env-key";
+    keyInput.placeholder = "KEY";
+    keyInput.value = key || "";
+    var valInput = document.createElement("input");
+    valInput.type = "text";
+    valInput.className = "env-val";
+    valInput.placeholder = "VALUE";
+    valInput.value = value || "";
+    var delBtn = document.createElement("button");
+    delBtn.className = "btn-delete";
+    delBtn.title = "Delete";
+    delBtn.textContent = "\u00d7";
+    row.appendChild(keyInput);
+    row.appendChild(valInput);
+    row.appendChild(delBtn);
+    delBtn.addEventListener("click", function () {
       container.removeChild(row);
       scheduleSaveCustomEnv();
     });
-    row
-      .querySelector(".env-key")
-      .addEventListener("input", scheduleSaveCustomEnv);
-    row
-      .querySelector(".env-val")
-      .addEventListener("input", scheduleSaveCustomEnv);
+    keyInput.addEventListener("input", scheduleSaveCustomEnv);
+    valInput.addEventListener("input", scheduleSaveCustomEnv);
     container.appendChild(row);
   }
 
@@ -409,6 +450,8 @@
 
   // ── Messages from extension ───────────────────────────────────────────────
   window.addEventListener("message", function (event) {
+    // Only accept messages from the extension host (vscode-webview origin)
+    if (event.origin && !event.origin.startsWith("vscode-webview://")) { return; }
     var msg = event.data;
     switch (msg.command) {
       case "init":
@@ -419,7 +462,7 @@
         selectedTcId = "";
         selectedTag = "";
         selectedHelperName = "";
-        populateList("tc-select", allTestCaseIds);
+        populateTcList(allTestCaseIds);
         populateList("tag-select", allTags);
         populateHelperTable(allHelpers, false);
         el("custom-env-rows").innerHTML = "";
@@ -431,7 +474,7 @@
         break;
       case "updateTestCaseIds":
         allTestCaseIds = msg.testCaseIds;
-        populateList("tc-select", allTestCaseIds, selectedTcId);
+        populateTcList(allTestCaseIds, selectedTcId);
         applyListFilter("tc-select", val("tc-search"));
         break;
       case "updateTags":
