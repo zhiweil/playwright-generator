@@ -1,5 +1,7 @@
 # Playwright LLM Test Case Generator
 
+> ⚠️ **Version Notice**: Versions v1.0.1 to v1.0.55 are development builds and are not recommended for use. Please upgrade to **v1.0.56 or above** if you are still running these versions.
+
 This module streamlines the generation of Playwright test cases by integrating with Large Language Models. While there are many AI-based test frameworks that allow test cases to be written in natural language, the following drawbacks are commonly found with these approaches.
 
 ## Table of Contents
@@ -34,6 +36,7 @@ This module streamlines the generation of Playwright test cases by integrating w
   - [Qwen Models](#qwen-models-by-alibaba)
   - [DeepSeek Models](#deepseek-models-by-deepseek-ai)
   - [Using LM Studio](#using-lm-studio-alternative)
+- [VS Code Extension](#vs-code-extension)
 - [Contributing](#contributing)
   - [Development Setup](#development-setup)
 - [License](#license)
@@ -77,7 +80,7 @@ This project implements an npx command in TypeScript and is released as an NPM m
 npx playwright-generator init
 ```
 
-The installed module will have amazing features to facilitate your day-to-day test automation tasks.
+The installed module will have rich features to facilitate your day-to-day test automation tasks.
 
 ## Prerequisites
 
@@ -132,10 +135,6 @@ project-root/
 │   ├── generated.test.ts
 │   └── helpers/              # Generated helper classes
 │       └── *.ts
-├── page-objects/             # Page Object Models (optional)
-│   └── *.po.ts
-├── utils/                    # Helper utilities
-│   └── *.ts
 ├── audit/                    # Screenshots and artifacts from failed tests
 │   └── screenshots/
 ├── .env                      # Environment variables (local only, ignored by Git)
@@ -304,7 +303,7 @@ npx playwright-generator generate-helper LoginHelper --model local
 **Output**: The generated helper class is written to `generated/helpers/LoginHelper.ts`:
 
 ```typescript
-import { Page } from '@playwright/test';
+import { Page } from "@playwright/test";
 
 /**
  * This is a helper class for login related actions
@@ -376,17 +375,6 @@ npm run report
 
 ### Advanced Features
 
-**Page Object Models (POM)**:
-
-- Create reusable page objects in the `page-objects/` folder to improve test maintainability
-- Example: `page-objects/login.po.ts` for login page interactions
-- Reference page objects in your natural language test cases for better structure
-
-**Test Utilities**:
-
-- Helper functions available in `utils/` for common operations (wait strategies, error handling, etc.)
-- Custom assertions and reporters can be added for specialized testing needs
-
 **Parallel Execution**:
 
 - Configure parallel test execution in `playwright.config.ts`
@@ -418,9 +406,8 @@ Workflow file location: `.github/workflows/playwright-tests.yml`
    - Specific selectors or UI elements mentioned
    - Expected outcomes clearly stated
 4. **Code Review**: Always review generated code before committing
-5. **Page Objects**: Use POM for maintainability as your test suite grows
-6. **Assertions**: Be explicit about what you're asserting
-8. **Helper Classes**: Use `generate-helper` to create reusable helper classes for common actions, reducing duplication across test cases
+5. **Assertions**: Be explicit about what you're asserting
+7. **Helper Classes**: Use `generate-helper` to create reusable helper classes for common actions, reducing duplication across test cases
 
 ### Troubleshooting
 
@@ -457,11 +444,13 @@ The `local` provider sends requests to `LOCAL_LLM_URL/v1/chat/completions`, the 
 ### 1. Install Ollama
 
 **macOS / Linux**:
+
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
 **macOS (Homebrew)**:
+
 ```bash
 brew install ollama
 ```
@@ -490,6 +479,7 @@ ollama pull codellama
 ```
 
 To list all models you have pulled:
+
 ```bash
 ollama list
 ```
@@ -516,17 +506,17 @@ npx playwright-generator generate --tc TC-0001
 
 ### Recommended Models
 
-| Model | Size | Best For |
-|---|---|---|
-| `llama3` | ~4.7 GB | General use, good code quality |
-| `codellama` | ~3.8 GB | Code generation tasks |
-| `mistral` | ~4.1 GB | Fast, low memory usage |
-| `llama3:8b` | ~8 GB | Higher quality output |
-| `deepseek-coder` | ~3.8 GB | Code-focused, strong TypeScript |
-| `deepseek-coder-v2` | ~8.9 GB | Stronger code quality than v1 |
-| `deepseek-r1` | ~4.7 GB | Reasoning-focused, good for complex logic |
-| `qwen2.5-coder` | ~4.7 GB | Strong TypeScript/code generation |
-| `qwen2.5` | ~4.7 GB | General use, multilingual |
+| Model               | Size    | Best For                                  |
+| ------------------- | ------- | ----------------------------------------- |
+| `llama3`            | ~4.7 GB | General use, good code quality            |
+| `codellama`         | ~3.8 GB | Code generation tasks                     |
+| `mistral`           | ~4.1 GB | Fast, low memory usage                    |
+| `llama3:8b`         | ~8 GB   | Higher quality output                     |
+| `deepseek-coder`    | ~3.8 GB | Code-focused, strong TypeScript           |
+| `deepseek-coder-v2` | ~8.9 GB | Stronger code quality than v1             |
+| `deepseek-r1`       | ~4.7 GB | Reasoning-focused, good for complex logic |
+| `qwen2.5-coder`     | ~4.7 GB | Strong TypeScript/code generation         |
+| `qwen2.5`           | ~4.7 GB | General use, multilingual                 |
 
 ### Qwen Models (by Alibaba)
 
@@ -580,6 +570,37 @@ LOCAL_LLM_MODEL=Meta-Llama-3-8B-Instruct   # Must match the model name shown in 
 ```
 
 > Note: Local models are slower than cloud APIs — expect 30–120 seconds per generation depending on hardware. No data leaves your machine.
+
+## VS Code Extension
+
+A VS Code extension is available to provide a graphical interface for `playwright-generator` — configure your AI model, generate test cases and helper classes, and run your tests without leaving the editor.
+
+**Install from the Marketplace**:
+
+[Playwright Generator — VS Code Extension](https://marketplace.visualstudio.com/items?itemName=zhiweiliu.playwright-generator-vscode)
+
+Or search for `Playwright Generator` in the VS Code Extensions panel (`Ctrl+Shift+X`).
+
+### Features
+
+- **Config tab** — configure AI model credentials and Playwright settings; changes are auto-saved to `.env`
+- **Generate tab** — browse and search test case IDs from `tests/`; generate TypeScript test code with one click
+- **Helpers tab** — browse helper definitions from `helpers/`; see which actions have been generated and generate missing ones
+- **Run tab** — run all tests, run by tag, run with UI, debug, and view the last HTML report
+
+### Requirements
+
+- A workspace initialised with `npx playwright-generator init`
+- A `.env` file in the workspace root
+
+### Getting Started
+
+1. Install the extension from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=zhiweiliu.playwright-generator-vscode)
+2. Open your `playwright-generator` project in VS Code
+3. Click the Playwright Generator icon in the Activity Bar
+4. Configure your AI model in the **Config** tab
+5. Select a test case and click **Generate** in the **Generate** tab
+6. Run your tests from the **Run** tab
 
 ## Contributing
 
