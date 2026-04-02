@@ -1,4 +1,3 @@
-// @ts-check
 (function () {
   const vscode = acquireVsCodeApi();
 
