@@ -3,39 +3,86 @@
   const vscode = acquireVsCodeApi();
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  function el(id) { return document.getElementById(id); }
-  function val(id) { return el(id).value; }
-  function setVal(id, v) { const e = el(id); if (e) { e.value = v ?? ""; } }
-  function setChecked(id, v) { const e = el(id); if (e) { e.checked = v === "true" || v === true; } }
+  function el(id) {
+    return document.getElementById(id);
+  }
+  function val(id) {
+    return el(id).value;
+  }
+  function setVal(id, v) {
+    const e = el(id);
+    if (e) {
+      e.value = v ?? "";
+    }
+  }
+  function setChecked(id, v) {
+    const e = el(id);
+    if (e) {
+      e.checked = v === "true" || v === true;
+    }
+  }
 
   // ── Running state ─────────────────────────────────────────────────────────
   var INTERACTIVE = [
-    "AI_MODEL", "CLAUDE_API_KEY", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT",
-    "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_API_VERSION", "CHATGPT_API_KEY", "CHATGPT_MODEL",
-    "LOCAL_LLM_URL", "LOCAL_LLM_MODEL", "BROWSER", "VIDEO", "HEADLESS", "TIMEOUT", "RETRIES",
-    "tc-search", "tc-select", "tag-search", "tag-select",
-    "helper-search", "btn-generate-helper",
-    "btn-generate", "btn-run-all", "btn-run-tag", "btn-run-headed", "btn-debug", "btn-report", "btn-add-env"
+    "AI_MODEL",
+    "CLAUDE_API_KEY",
+    "AZURE_OPENAI_API_KEY",
+    "AZURE_OPENAI_ENDPOINT",
+    "AZURE_OPENAI_DEPLOYMENT",
+    "AZURE_OPENAI_API_VERSION",
+    "CHATGPT_API_KEY",
+    "CHATGPT_MODEL",
+    "LOCAL_LLM_URL",
+    "LOCAL_LLM_MODEL",
+    "BROWSER",
+    "VIDEO",
+    "HEADLESS",
+    "TIMEOUT",
+    "RETRIES",
+    "tc-search",
+    "tc-select",
+    "tag-search",
+    "tag-select",
+    "helper-search",
+    "btn-generate-helper",
+    "btn-generate",
+    "btn-run-all",
+    "btn-run-tag",
+    "btn-run-headed",
+    "btn-debug",
+    "btn-report",
+    "btn-add-env",
   ];
 
   function setRunning(running) {
     INTERACTIVE.forEach(function (id) {
       var e = el(id);
-      if (e) { e.disabled = running; }
+      if (e) {
+        e.disabled = running;
+      }
     });
-    el("custom-env-rows").querySelectorAll("input, button").forEach(function (e) {
-      e.disabled = running;
-    });
+    el("custom-env-rows")
+      .querySelectorAll("input, button")
+      .forEach(function (e) {
+        e.disabled = running;
+      });
     var banner = el("running-banner");
-    if (running) { banner.classList.remove("hidden"); }
-    else { banner.classList.add("hidden"); }
+    if (running) {
+      banner.classList.remove("hidden");
+    } else {
+      banner.classList.add("hidden");
+    }
   }
 
   // ── Tabs ──────────────────────────────────────────────────────────────────
   document.querySelectorAll(".tab").forEach(function (tab) {
     tab.addEventListener("click", function () {
-      document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
-      document.querySelectorAll(".tab-panel").forEach(function (p) { p.classList.add("hidden"); });
+      document.querySelectorAll(".tab").forEach(function (t) {
+        t.classList.remove("active");
+      });
+      document.querySelectorAll(".tab-panel").forEach(function (p) {
+        p.classList.add("hidden");
+      });
       tab.classList.add("active");
       var panelId = "tab-" + tab.getAttribute("data-tab");
       el(panelId).classList.remove("hidden");
@@ -44,18 +91,30 @@
 
   // ── Model field visibility ────────────────────────────────────────────────
   function updateModelFields(model) {
-    var all = ["claude-fields", "azure-fields", "chatgpt-fields", "local-fields"];
+    var all = [
+      "claude-fields",
+      "azure-fields",
+      "chatgpt-fields",
+      "local-fields",
+    ];
     var map = {
-      "claude": "claude-fields",
+      claude: "claude-fields",
       "azure-openai": "azure-fields",
-      "chatgpt": "chatgpt-fields",
-      "local": "local-fields",
+      chatgpt: "chatgpt-fields",
+      local: "local-fields",
     };
-    for (var i = 0; i < all.length; i++) { el(all[i]).classList.add("hidden"); }
-    if (map[model]) { el(map[model]).classList.remove("hidden"); }
+    for (var i = 0; i < all.length; i++) {
+      el(all[i]).classList.add("hidden");
+    }
+    if (map[model]) {
+      el(map[model]).classList.remove("hidden");
+    }
   }
 
-  el("AI_MODEL").addEventListener("change", function () { updateModelFields(val("AI_MODEL")); scheduleConfigSave(); });
+  el("AI_MODEL").addEventListener("change", function () {
+    updateModelFields(val("AI_MODEL"));
+    scheduleConfigSave();
+  });
 
   // ── Config auto-save ──────────────────────────────────────────────────────
   var configSaveTimer = null;
@@ -81,17 +140,26 @@
   }
 
   function scheduleConfigSave() {
-    if (configSaveTimer) { clearTimeout(configSaveTimer); }
+    if (configSaveTimer) {
+      clearTimeout(configSaveTimer);
+    }
     configSaveTimer = setTimeout(function () {
       vscode.postMessage({ command: "saveEnv", env: collectEnv() });
     }, 600);
   }
 
   var configInputIds = [
-    "CLAUDE_API_KEY", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT",
-    "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_API_VERSION",
-    "CHATGPT_API_KEY", "CHATGPT_MODEL", "LOCAL_LLM_URL", "LOCAL_LLM_MODEL",
-    "TIMEOUT", "RETRIES"
+    "CLAUDE_API_KEY",
+    "AZURE_OPENAI_API_KEY",
+    "AZURE_OPENAI_ENDPOINT",
+    "AZURE_OPENAI_DEPLOYMENT",
+    "AZURE_OPENAI_API_VERSION",
+    "CHATGPT_API_KEY",
+    "CHATGPT_MODEL",
+    "LOCAL_LLM_URL",
+    "LOCAL_LLM_MODEL",
+    "TIMEOUT",
+    "RETRIES",
   ];
   configInputIds.forEach(function (id) {
     el(id).addEventListener("input", scheduleConfigSave);
@@ -135,7 +203,9 @@
       opt.textContent = items[i];
       select.appendChild(opt);
     }
-    if (current) { select.value = current; }
+    if (current) {
+      select.value = current;
+    }
   }
 
   // Filter by hiding non-matching options, keeping all in DOM
@@ -180,7 +250,9 @@
 
   function populateHelperTable(helpers, preserveSelection) {
     var tbody = el("helper-tbody");
-    if (!tbody) { return; }
+    if (!tbody) {
+      return;
+    }
     var searchEl = el("helper-search");
     var query = searchEl ? searchEl.value.toLowerCase() : "";
     tbody.innerHTML = "";
@@ -188,12 +260,26 @@
       var tr = document.createElement("tr");
       tr.setAttribute("data-name", h.name);
       var actionsText = h.generated
-        ? (h.actions.length > 0 ? h.actions.join(", ") : "—")
+        ? h.actions.length > 0
+          ? h.actions.join(", ")
+          : "—"
         : "⏳ Not generated yet";
-      var actionsClass = h.generated ? "helper-actions-cell" : "helper-actions-cell helper-pending";
+      var actionsClass = h.generated
+        ? "helper-actions-cell"
+        : "helper-actions-cell helper-pending";
       tr.innerHTML =
-        "<td class='helper-name-cell' title='" + h.name + "'>" + h.name + "</td>" +
-        "<td class='" + actionsClass + "' title='" + actionsText + "'>" + actionsText + "</td>";
+        "<td class='helper-name-cell' title='" +
+        h.name +
+        "'>" +
+        h.name +
+        "</td>" +
+        "<td class='" +
+        actionsClass +
+        "' title='" +
+        actionsText +
+        "'>" +
+        actionsText +
+        "</td>";
       // Hide row if search doesn't match name
       if (query && !h.name.toLowerCase().includes(query)) {
         tr.hidden = true;
@@ -203,7 +289,9 @@
         tr.classList.add("selected");
       }
       tr.addEventListener("click", function () {
-        tbody.querySelectorAll("tr").forEach(function (r) { r.classList.remove("selected"); });
+        tbody.querySelectorAll("tr").forEach(function (r) {
+          r.classList.remove("selected");
+        });
         tr.classList.add("selected");
         selectedHelperName = h.name;
       });
@@ -211,16 +299,18 @@
     });
   }
 
-  document.addEventListener("input", function (e) {
-    if (e.target && e.target.id === "helper-search") {
-      populateHelperTable(allHelpers, true);
-    }
+  el("helper-search").addEventListener("input", function () {
+    populateHelperTable(allHelpers, true);
   });
 
   document.addEventListener("click", function (e) {
     if (e.target && e.target.id === "btn-generate-helper") {
-      var name = selectedHelperName || (el("helper-search") ? el("helper-search").value.trim() : "");
-      if (!name) { return; }
+      var name =
+        selectedHelperName ||
+        (el("helper-search") ? el("helper-search").value.trim() : "");
+      if (!name) {
+        return;
+      }
       vscode.postMessage({ command: "generateHelper", helperName: name });
     }
   });
@@ -231,29 +321,47 @@
     vscode.postMessage({ command: "generate", tcId: tcId });
   });
 
-  el("btn-run-all").addEventListener("click", function () { vscode.postMessage({ command: "runAll" }); });
+  el("btn-run-all").addEventListener("click", function () {
+    vscode.postMessage({ command: "runAll" });
+  });
 
   el("btn-run-tag").addEventListener("click", function () {
-    vscode.postMessage({ command: "runByTag", tag: selectedTag || val("tag-search") });
+    vscode.postMessage({
+      command: "runByTag",
+      tag: selectedTag || val("tag-search"),
+    });
   });
 
   el("btn-run-headed").addEventListener("click", function () {
-    vscode.postMessage({ command: "runHeaded", tag: selectedTag || val("tag-search") });
+    vscode.postMessage({
+      command: "runHeaded",
+      tag: selectedTag || val("tag-search"),
+    });
   });
 
   el("btn-debug").addEventListener("click", function () {
-    vscode.postMessage({ command: "debug", tag: selectedTag || val("tag-search") });
+    vscode.postMessage({
+      command: "debug",
+      tag: selectedTag || val("tag-search"),
+    });
   });
 
-  el("btn-report").addEventListener("click", function () { vscode.postMessage({ command: "report" }); });
+  el("btn-report").addEventListener("click", function () {
+    vscode.postMessage({ command: "report" });
+  });
 
   // ── Custom Env ────────────────────────────────────────────────────────────
   var saveCustomEnvTimer = null;
 
   function scheduleSaveCustomEnv() {
-    if (saveCustomEnvTimer) { clearTimeout(saveCustomEnvTimer); }
+    if (saveCustomEnvTimer) {
+      clearTimeout(saveCustomEnvTimer);
+    }
     saveCustomEnvTimer = setTimeout(function () {
-      vscode.postMessage({ command: "saveCustomEnv", customEnv: collectCustomEnv() });
+      vscode.postMessage({
+        command: "saveCustomEnv",
+        customEnv: collectCustomEnv(),
+      });
     }, 600);
   }
 
@@ -262,15 +370,23 @@
     var row = document.createElement("div");
     row.className = "env-row";
     row.innerHTML =
-      '<input type="text" class="env-key" placeholder="KEY" value="' + (key || "") + '">' +
-      '<input type="text" class="env-val" placeholder="VALUE" value="' + (value || "") + '">' +
+      '<input type="text" class="env-key" placeholder="KEY" value="' +
+      (key || "") +
+      '">' +
+      '<input type="text" class="env-val" placeholder="VALUE" value="' +
+      (value || "") +
+      '">' +
       '<button class="btn-delete" title="Delete">&times;</button>';
     row.querySelector(".btn-delete").addEventListener("click", function () {
       container.removeChild(row);
       scheduleSaveCustomEnv();
     });
-    row.querySelector(".env-key").addEventListener("input", scheduleSaveCustomEnv);
-    row.querySelector(".env-val").addEventListener("input", scheduleSaveCustomEnv);
+    row
+      .querySelector(".env-key")
+      .addEventListener("input", scheduleSaveCustomEnv);
+    row
+      .querySelector(".env-val")
+      .addEventListener("input", scheduleSaveCustomEnv);
     container.appendChild(row);
   }
 
@@ -280,12 +396,16 @@
     rows.forEach(function (row) {
       var key = row.querySelector(".env-key").value.trim();
       var value = row.querySelector(".env-val").value;
-      if (key) { result[key] = value; }
+      if (key) {
+        result[key] = value;
+      }
     });
     return result;
   }
 
-  el("btn-add-env").addEventListener("click", function () { addEnvRow("", ""); });
+  el("btn-add-env").addEventListener("click", function () {
+    addEnvRow("", "");
+  });
 
   // ── Messages from extension ───────────────────────────────────────────────
   window.addEventListener("message", function (event) {
@@ -330,5 +450,4 @@
   });
   // ── Signal ready to extension host ──────────────────────────────────────
   vscode.postMessage({ command: "ready" });
-
-}());
+})();
