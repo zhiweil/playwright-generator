@@ -51,6 +51,7 @@
     "btn-debug",
     "btn-report",
     "btn-add-env",
+    "btn-add-environment",
   ];
 
   function setRunning(running) {
@@ -225,23 +226,6 @@
     if (current) { select.value = current; }
   }
 
-  function populateTcList(entries, preserveValue) {
-    var select = el("tc-select");
-    var current = preserveValue !== undefined ? preserveValue : select.value;
-    select.innerHTML = "";
-    for (var i = 0; i < entries.length; i++) {
-      var entry = entries[i];
-      var opt = document.createElement("option");
-      opt.value = entry.id;
-      opt.textContent = entry.id + (entry.duplicate ? " [Duplicate!]" : "");
-      if (entry.duplicate) {
-        opt.disabled = true;
-        opt.style.color = "var(--vscode-disabledForeground, #888)";
-      }
-      select.appendChild(opt);
-    }
-    if (current) { select.value = current; }
-  }
 
   // Filter by hiding non-matching options, keeping all in DOM
   function applyListFilter(selectId, query) {
@@ -447,6 +431,92 @@
     addEnvRow("", "");
   });
 
+  // ── Environments ────────────────────────────────────────────────────────────
+  var allRunningEnvs = [];
+  var activeEnvName = "local";
+
+  function renderEnvList(envs, activeEnv) {
+    var container = el("env-list");
+    container.innerHTML = "";
+    var names = envs.map(function (e) { return e.name; });
+    var allEnvs = envs.slice();
+    if (names.indexOf("local") === -1) { allEnvs.unshift({ name: "local", vars: {} }); }
+    allEnvs.forEach(function (env) {
+      var row = document.createElement("div");
+      row.className = "env-row";
+      var nameSpan = document.createElement("span");
+      nameSpan.className = "env-name-label" + (env.name === activeEnv ? " env-active" : "");
+      nameSpan.textContent = env.name + (env.name === activeEnv ? " ✓" : "");
+      nameSpan.style.flex = "1";
+      nameSpan.style.padding = "4px 6px";
+      nameSpan.style.fontWeight = env.name === activeEnv ? "600" : "normal";
+      var activateBtn = document.createElement("button");
+      activateBtn.textContent = "Activate";
+      activateBtn.style.width = "auto";
+      activateBtn.style.marginTop = "0";
+      activateBtn.style.padding = "3px 8px";
+      activateBtn.disabled = env.name === activeEnv;
+      activateBtn.addEventListener("click", function () {
+        vscode.postMessage({ command: "activateEnvironment", envName: env.name });
+      });
+      row.appendChild(nameSpan);
+      row.appendChild(activateBtn);
+      if (env.name !== "local") {
+        var delBtn = document.createElement("button");
+        delBtn.className = "btn-delete";
+        delBtn.title = "Delete environment";
+        delBtn.textContent = "×";
+        delBtn.style.marginTop = "0";
+        delBtn.addEventListener("click", function () {
+          vscode.postMessage({ command: "deleteEnvironment", envName: env.name });
+        });
+        row.appendChild(delBtn);
+      }
+      container.appendChild(row);
+    });
+  }
+
+  el("btn-add-environment").addEventListener("click", function () {
+    var existing = el("new-env-inline");
+    if (existing) { existing.remove(); return; }
+    var form = document.createElement("div");
+    form.id = "new-env-inline";
+    form.className = "env-row";
+    form.style.marginTop = "4px";
+    var input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Environment name";
+    input.style.flex = "1";
+    var confirmBtn = document.createElement("button");
+    confirmBtn.textContent = "Add";
+    confirmBtn.style.width = "auto";
+    confirmBtn.style.marginTop = "0";
+    confirmBtn.style.padding = "3px 8px";
+    var cancelBtn = document.createElement("button");
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.style.width = "auto";
+    cancelBtn.style.marginTop = "0";
+    cancelBtn.style.padding = "3px 8px";
+    cancelBtn.style.background = "var(--vscode-button-secondaryBackground, #3a3d41)";
+    cancelBtn.style.color = "var(--vscode-button-secondaryForeground, #ccc)";
+    form.appendChild(input);
+    form.appendChild(confirmBtn);
+    form.appendChild(cancelBtn);
+    el("env-list").after(form);
+    input.focus();
+    confirmBtn.addEventListener("click", function () {
+      var name = input.value.trim();
+      if (!name) { return; }
+      vscode.postMessage({ command: "addEnvironment", envName: name });
+      form.remove();
+    });
+    cancelBtn.addEventListener("click", function () { form.remove(); });
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { confirmBtn.click(); }
+      if (e.key === "Escape") { form.remove(); }
+    });
+  });
+
   // ── Messages from extension ───────────────────────────────────────────────
   window.addEventListener("message", function (event) {
     // Only accept messages from the extension host (vscode-webview origin)
@@ -470,6 +540,9 @@
             addEnvRow(key, msg.customEnv[key]);
           });
         }
+        allRunningEnvs = msg.runningEnvs || [];
+        activeEnvName = (msg.env && msg.env.RUNNING_ENVIRONMENT) || "local";
+        renderEnvList(allRunningEnvs, activeEnvName);
         break;
       case "updateTestCaseIds":
         allTestCaseIds = msg.testCaseIds;
@@ -487,6 +560,22 @@
         break;
       case "setRunning":
         setRunning(msg.running);
+        break;
+      case "envActivated":
+        applyEnv(msg.env);
+        el("custom-env-rows").innerHTML = "";
+        if (msg.customEnv) {
+          Object.keys(msg.customEnv).forEach(function (key) {
+            addEnvRow(key, msg.customEnv[key]);
+          });
+        }
+        allRunningEnvs = msg.runningEnvs || [];
+        activeEnvName = (msg.env && msg.env.RUNNING_ENVIRONMENT) || "local";
+        renderEnvList(allRunningEnvs, activeEnvName);
+        break;
+      case "updateRunningEnvs":
+        allRunningEnvs = msg.runningEnvs || [];
+        renderEnvList(allRunningEnvs, activeEnvName);
         break;
     }
   });

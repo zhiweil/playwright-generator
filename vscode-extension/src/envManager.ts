@@ -17,6 +17,7 @@ export interface EnvConfig {
   TIMEOUT: string;
   RETRIES: string;
   VIDEO: string;
+  RUNNING_ENVIRONMENT: string;
 }
 
 export const ENV_DEFAULTS: EnvConfig = {
@@ -35,49 +36,57 @@ export const ENV_DEFAULTS: EnvConfig = {
   TIMEOUT: "30000",
   RETRIES: "1",
   VIDEO: "retain-on-failure",
+  RUNNING_ENVIRONMENT: "local",
 };
 
 export const SYSTEM_KEYS = new Set(Object.keys(ENV_DEFAULTS));
 
+// ── .env read/write ───────────────────────────────────────────────────────────
+
 export function readEnv(workspaceRoot: string): EnvConfig {
   const envPath = path.join(workspaceRoot, ".env");
   const config: EnvConfig = { ...ENV_DEFAULTS };
-
   if (!fs.existsSync(envPath)) {
     return config;
   }
 
-  const lines = fs.readFileSync(envPath, "utf-8").split("\n");
-  for (const line of lines) {
+  for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) { continue; }
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
     const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) { continue; }
+    if (eqIndex === -1) {
+      continue;
+    }
     const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).split("#")[0].trim();
+    const value = trimmed
+      .slice(eqIndex + 1)
+      .split("#")[0]
+      .trim();
     if (key in config) {
       (config as unknown as Record<string, string>)[key] = value;
     }
   }
-
   return config;
 }
 
 export function writeEnv(workspaceRoot: string, config: EnvConfig): void {
   const envPath = path.join(workspaceRoot, ".env");
-  let lines: string[] = [];
-
-  if (fs.existsSync(envPath)) {
-    lines = fs.readFileSync(envPath, "utf-8").split("\n");
-  }
+  let lines: string[] = fs.existsSync(envPath)
+    ? fs.readFileSync(envPath, "utf-8").split("\n")
+    : [];
 
   const updated = new Set<string>();
-
   const newLines = lines.map((line) => {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) { return line; }
+    if (!trimmed || trimmed.startsWith("#")) {
+      return line;
+    }
     const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) { return line; }
+    if (eqIndex === -1) {
+      return line;
+    }
     const key = trimmed.slice(0, eqIndex).trim();
     if (key in config) {
       updated.add(key);
@@ -88,26 +97,37 @@ export function writeEnv(workspaceRoot: string, config: EnvConfig): void {
 
   for (const key of Object.keys(config) as (keyof EnvConfig)[]) {
     if (!updated.has(key)) {
-      newLines.push(`${key}=${(config as unknown as Record<string, string>)[key]}`);
+      newLines.push(
+        `${key}=${(config as unknown as Record<string, string>)[key]}`,
+      );
     }
   }
-
   fs.writeFileSync(envPath, newLines.join("\n"), "utf-8");
 }
 
-// Returns all non-system key=value pairs from .env
+// ── Custom env (active environment vars in .env) ──────────────────────────────
+
 export function readCustomEnv(workspaceRoot: string): Record<string, string> {
   const envPath = path.join(workspaceRoot, ".env");
   const custom: Record<string, string> = {};
-  if (!fs.existsSync(envPath)) { return custom; }
+  if (!fs.existsSync(envPath)) {
+    return custom;
+  }
 
   for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) { continue; }
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
     const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) { continue; }
+    if (eqIndex === -1) {
+      continue;
+    }
     const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).split("#")[0].trim();
+    const value = trimmed
+      .slice(eqIndex + 1)
+      .split("#")[0]
+      .trim();
     if (!SYSTEM_KEYS.has(key)) {
       custom[key] = value;
     }
@@ -115,27 +135,188 @@ export function readCustomEnv(workspaceRoot: string): Record<string, string> {
   return custom;
 }
 
-// Writes custom (non-system) key=value pairs to .env, removing deleted ones
-export function writeCustomEnv(workspaceRoot: string, custom: Record<string, string>): void {
+export function writeCustomEnv(
+  workspaceRoot: string,
+  custom: Record<string, string>,
+): void {
   const envPath = path.join(workspaceRoot, ".env");
   let lines: string[] = fs.existsSync(envPath)
     ? fs.readFileSync(envPath, "utf-8").split("\n")
     : [];
 
-  // Remove all existing non-system lines
   lines = lines.filter((line) => {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) { return true; }
+    if (!trimmed || trimmed.startsWith("#")) {
+      return true;
+    }
     const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) { return true; }
+    if (eqIndex === -1) {
+      return true;
+    }
     const key = trimmed.slice(0, eqIndex).trim();
     return SYSTEM_KEYS.has(key);
   });
 
-  // Append custom vars
   for (const [key, value] of Object.entries(custom)) {
-    if (key.trim()) { lines.push(`${key}=${value}`); }
+    if (key.trim()) {
+      lines.push(`${key}=${value}`);
+    }
+  }
+  fs.writeFileSync(envPath, lines.join("\n"), "utf-8");
+}
+
+// ── .envs multi-environment support ──────────────────────────────────────────
+
+export interface EnvironmentData {
+  name: string;
+  vars: Record<string, string>;
+}
+
+const ENVS_FILE = ".envs";
+const DEFAULT_ENVIRONMENTS = ["local", "integration", "staging", "production"];
+
+function envsFilePath(workspaceRoot: string): string {
+  return path.join(workspaceRoot, ENVS_FILE);
+}
+
+/** Validate and sanitize environment name to prevent path traversal (CWE-22) */
+function validateEnvName(name: string): string {
+  const safe = name.trim().replace(/[^A-Za-z0-9_-]/g, "");
+  if (!safe) {
+    throw new Error(`Invalid environment name: "${name.trim()}"`);
+  }
+  return safe;
+}
+
+/** Parse .envs into a list of EnvironmentData */
+export function readRunningEnvs(workspaceRoot: string): EnvironmentData[] {
+  const filePath = envsFilePath(workspaceRoot);
+  if (!fs.existsSync(filePath)) {
+    return DEFAULT_ENVIRONMENTS.map((name) => ({ name, vars: {} }));
   }
 
-  fs.writeFileSync(envPath, lines.join("\n"), "utf-8");
+  const envs: EnvironmentData[] = [];
+  let current: EnvironmentData | null = null;
+
+  for (const line of fs.readFileSync(filePath, "utf-8").split("\n")) {
+    const trimmed = line.trim();
+    // Section header: "# envName" — single word after #
+    const headerMatch = trimmed.match(/^#\s+([A-Za-z][A-Za-z0-9_-]*)$/);
+    if (headerMatch) {
+      if (current) {
+        envs.push(current);
+      }
+      current = { name: headerMatch[1], vars: {} };
+      continue;
+    }
+    if (!current || !trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) {
+      continue;
+    }
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim();
+    if (key) {
+      current.vars[key] = value;
+    }
+  }
+  if (current) {
+    envs.push(current);
+  }
+  return envs;
+}
+
+/** Write all environments back to .envs */
+export function writeRunningEnvs(
+  workspaceRoot: string,
+  envs: EnvironmentData[],
+): void {
+  const lines: string[] = [];
+  for (const env of envs) {
+    lines.push(`# ${env.name}`);
+    for (const [key, value] of Object.entries(env.vars)) {
+      if (key.trim()) {
+        lines.push(`${key}=${value}`);
+      }
+    }
+    lines.push("");
+  }
+  fs.writeFileSync(envsFilePath(workspaceRoot), lines.join("\n"), "utf-8");
+}
+
+/** Activate an environment: write its vars to .env, update RUNNING_ENVIRONMENT */
+export function activateEnvironment(
+  workspaceRoot: string,
+  envName: string,
+): void {
+  const safeName = validateEnvName(envName);
+  const envs = readRunningEnvs(workspaceRoot);
+  const target = envs.find((e) => e.name === safeName);
+  const config = readEnv(workspaceRoot);
+  config.RUNNING_ENVIRONMENT = safeName;
+  writeEnv(workspaceRoot, config);
+  writeCustomEnv(workspaceRoot, target ? target.vars : {});
+}
+
+/** Save vars for a named environment back to .envs */
+export function saveEnvironmentVars(
+  workspaceRoot: string,
+  envName: string,
+  vars: Record<string, string>,
+): void {
+  const safeName = validateEnvName(envName);
+  const envs = readRunningEnvs(workspaceRoot);
+  const existing = envs.find((e) => e.name === safeName);
+  if (existing) {
+    existing.vars = vars;
+  } else {
+    envs.push({ name: safeName, vars });
+  }
+  writeRunningEnvs(workspaceRoot, envs);
+}
+
+/** Add a new environment, optionally copying vars from another */
+export function addEnvironment(
+  workspaceRoot: string,
+  newName: string,
+  copyFrom?: string,
+): void {
+  const safeName = validateEnvName(newName);
+  const envs = readRunningEnvs(workspaceRoot);
+  if (envs.find((e) => e.name === safeName)) {
+    return;
+  }
+  const source = copyFrom
+    ? envs.find((e) => e.name === validateEnvName(copyFrom))
+    : undefined;
+  envs.push({ name: safeName, vars: source ? { ...source.vars } : {} });
+  writeRunningEnvs(workspaceRoot, envs);
+}
+
+/** Delete an environment from .envs */
+export function deleteEnvironment(
+  workspaceRoot: string,
+  envName: string,
+): void {
+  const safeName = validateEnvName(envName);
+  // Prevent deletion of "local" environment
+  if (safeName === "local") {
+    return;
+  }
+
+  const config = readEnv(workspaceRoot);
+  const envs = readRunningEnvs(workspaceRoot).filter(
+    (e) => e.name !== safeName,
+  );
+
+  // If the deleted environment was active, switch to "local"
+  if (config.RUNNING_ENVIRONMENT === safeName) {
+    config.RUNNING_ENVIRONMENT = "local";
+    writeEnv(workspaceRoot, config);
+    writeCustomEnv(workspaceRoot, {});
+  }
+
+  writeRunningEnvs(workspaceRoot, envs);
 }

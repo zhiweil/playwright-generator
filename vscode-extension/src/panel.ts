@@ -2,8 +2,26 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import { execSync } from "child_process";
-import { readEnv, writeEnv, readCustomEnv, writeCustomEnv, EnvConfig } from "./envManager";
-import { scanTestCaseIds, scanTags, scanHelpers, HelperInfo, TestCaseEntry } from "./testCaseScanner";
+import {
+  readEnv,
+  writeEnv,
+  readCustomEnv,
+  writeCustomEnv,
+  EnvConfig,
+  readRunningEnvs,
+  activateEnvironment,
+  addEnvironment,
+  deleteEnvironment,
+  saveEnvironmentVars,
+  EnvironmentData,
+} from "./envManager";
+import {
+  scanTestCaseIds,
+  scanTags,
+  scanHelpers,
+  HelperInfo,
+  TestCaseEntry,
+} from "./testCaseScanner";
 
 export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = "playwrightGenerator.panel";
@@ -15,7 +33,8 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   private _isRunning = false;
 
   constructor(private readonly _extensionUri: vscode.Uri) {
-    this._workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
+    this._workspaceRoot =
+      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "";
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
@@ -31,7 +50,9 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((msg) => this._handleMessage(msg));
 
     webviewView.onDidChangeVisibility(() => {
-      if (webviewView.visible) { this._sendInitialData(); }
+      if (webviewView.visible) {
+        this._sendInitialData();
+      }
     });
 
     // Detect when terminal is closed so we can re-enable controls
@@ -47,33 +68,68 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   }
 
   private _sendInitialData(): void {
-    if (!this._view) { return; }
+    if (!this._view) {
+      return;
+    }
     const env = readEnv(this._workspaceRoot);
     const customEnv = readCustomEnv(this._workspaceRoot);
-    this._view.webview.postMessage({ command: "init", env, testCaseIds: [], tags: [], helpers: [], customEnv });
+    const runningEnvs = readRunningEnvs(this._workspaceRoot);
+    this._view.webview.postMessage({
+      command: "init",
+      env,
+      testCaseIds: [],
+      tags: [],
+      helpers: [],
+      customEnv,
+      runningEnvs,
+    });
     Promise.all([
       scanTestCaseIds(this._workspaceRoot),
       scanTags(this._workspaceRoot),
       scanHelpers(this._workspaceRoot),
     ]).then(([testCaseIds, tags, helpers]) => {
-      this._view?.webview.postMessage({ command: "updateTestCaseIds", testCaseIds });
+      this._view?.webview.postMessage({
+        command: "updateTestCaseIds",
+        testCaseIds,
+      });
       this._view?.webview.postMessage({ command: "updateTags", tags });
       this._view?.webview.postMessage({ command: "updateHelpers", helpers });
     });
   }
 
   private _setupWatchers(): void {
-    for (const w of this._watchers) { w.dispose(); }
+    for (const w of this._watchers) {
+      w.dispose();
+    }
     this._watchers = [];
 
-    const testsWatcher = vscode.workspace.createFileSystemWatcher("**/tests/**/*.test.md");
-    const generatedWatcher = vscode.workspace.createFileSystemWatcher("**/generated/**/*.test.ts");
-    const helpersWatcher = vscode.workspace.createFileSystemWatcher("**/helpers/**/*.md");
-    const generatedHelpersWatcher = vscode.workspace.createFileSystemWatcher("**/generated/helpers/**/*.ts");
+    const testsWatcher = vscode.workspace.createFileSystemWatcher(
+      "**/tests/**/*.test.md",
+    );
+    const generatedWatcher = vscode.workspace.createFileSystemWatcher(
+      "**/generated/**/*.test.ts",
+    );
+    const helpersWatcher =
+      vscode.workspace.createFileSystemWatcher("**/helpers/**/*.md");
+    const generatedHelpersWatcher = vscode.workspace.createFileSystemWatcher(
+      "**/generated/helpers/**/*.ts",
+    );
+    const envsWatcher = vscode.workspace.createFileSystemWatcher("**/.envs");
+
+    const refreshEnvs = () => {
+      const runningEnvs = readRunningEnvs(this._workspaceRoot);
+      this._view?.webview.postMessage({
+        command: "updateRunningEnvs",
+        runningEnvs,
+      });
+    };
 
     const refreshIds = () => {
       scanTestCaseIds(this._workspaceRoot).then((testCaseIds) => {
-        this._view?.webview.postMessage({ command: "updateTestCaseIds", testCaseIds });
+        this._view?.webview.postMessage({
+          command: "updateTestCaseIds",
+          testCaseIds,
+        });
       });
     };
 
@@ -105,7 +161,17 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     generatedHelpersWatcher.onDidCreate(refreshHelpers);
     generatedHelpersWatcher.onDidDelete(refreshHelpers);
 
-    this._watchers.push(testsWatcher, generatedWatcher, helpersWatcher, generatedHelpersWatcher);
+    this._watchers.push(
+      testsWatcher,
+      generatedWatcher,
+      helpersWatcher,
+      generatedHelpersWatcher,
+      envsWatcher,
+    );
+
+    envsWatcher.onDidChange(refreshEnvs);
+    envsWatcher.onDidCreate(refreshEnvs);
+    envsWatcher.onDidDelete(refreshEnvs);
   }
 
   private _setRunning(running: boolean): void {
@@ -123,15 +189,28 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   private _stopReportServer(): void {
     try {
       if (process.platform === "win32") {
-        const result = execSync(`netstat -ano | findstr :9324`, { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] });
-        const pids = [...new Set(
-          result.trim().split("\n")
-            .map(l => l.trim().split(/\s+/).pop())
-            .filter(Boolean)
-        )];
-        pids.forEach(pid => { try { execSync(`taskkill /PID ${pid} /F`, { stdio: "ignore" }); } catch (_) {} });
+        const result = execSync(`netstat -ano | findstr :9324`, {
+          encoding: "utf8",
+          stdio: ["pipe", "pipe", "ignore"],
+        });
+        const pids = [
+          ...new Set(
+            result
+              .trim()
+              .split("\n")
+              .map((l) => l.trim().split(/\s+/).pop())
+              .filter(Boolean),
+          ),
+        ];
+        pids.forEach((pid) => {
+          try {
+            execSync(`taskkill /PID ${pid} /F`, { stdio: "ignore" });
+          } catch (_) {}
+        });
       } else {
-        execSync(`lsof -ti:9324 | xargs kill -9 2>/dev/null || true`, { stdio: "ignore" as const });
+        execSync(`lsof -ti:9324 | xargs kill -9 2>/dev/null || true`, {
+          stdio: "ignore" as const,
+        });
       }
     } catch (_) {
       // No process on port — nothing to do
@@ -139,7 +218,9 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   }
 
   private _runInTerminal(cmd: string): void {
-    if (this._isRunning) { return; }
+    if (this._isRunning) {
+      return;
+    }
     this._setRunning(true);
 
     // Kill report server synchronously in extension host before sending command
@@ -157,13 +238,20 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     this._setRunning(false);
   }
 
-  private _handleMessage(msg: { command: string; [key: string]: unknown }): void {
+  private _handleMessage(msg: {
+    command: string;
+    [key: string]: unknown;
+  }): void {
     if (msg.command === "ready") {
       this._sendInitialData();
       return;
     }
 
-    if (this._isRunning && msg.command !== "saveEnv" && msg.command !== "saveCustomEnv") {
+    if (
+      this._isRunning &&
+      msg.command !== "saveEnv" &&
+      msg.command !== "saveCustomEnv"
+    ) {
       return;
     }
 
@@ -173,12 +261,67 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
         break;
 
       case "saveCustomEnv":
-        writeCustomEnv(this._workspaceRoot, msg.customEnv as Record<string, string>);
+        writeCustomEnv(
+          this._workspaceRoot,
+          msg.customEnv as Record<string, string>,
+        );
         break;
+
+      case "activateEnvironment": {
+        const envName = msg.envName as string;
+        activateEnvironment(this._workspaceRoot, envName);
+        const env = readEnv(this._workspaceRoot);
+        const customEnv = readCustomEnv(this._workspaceRoot);
+        const runningEnvs = readRunningEnvs(this._workspaceRoot);
+        this._view?.webview.postMessage({
+          command: "envActivated",
+          env,
+          customEnv,
+          runningEnvs,
+        });
+        break;
+      }
+
+      case "addEnvironment": {
+        const envName = msg.envName as string;
+        addEnvironment(this._workspaceRoot, envName);
+        const runningEnvs = readRunningEnvs(this._workspaceRoot);
+        this._view?.webview.postMessage({
+          command: "updateRunningEnvs",
+          runningEnvs,
+        });
+        break;
+      }
+
+      case "deleteEnvironment": {
+        const envName = msg.envName as string;
+        deleteEnvironment(this._workspaceRoot, envName);
+        const env = readEnv(this._workspaceRoot);
+        const customEnv = readCustomEnv(this._workspaceRoot);
+        const runningEnvs = readRunningEnvs(this._workspaceRoot);
+        this._view?.webview.postMessage({
+          command: "envActivated",
+          env,
+          customEnv,
+          runningEnvs,
+        });
+        break;
+      }
+
+      case "saveEnvironmentVars": {
+        const sevMsg = msg as unknown as {
+          envName: string;
+          vars: Record<string, string>;
+        };
+        saveEnvironmentVars(this._workspaceRoot, sevMsg.envName, sevMsg.vars);
+        break;
+      }
 
       case "generate": {
         const tcId = msg.tcId as string;
-        if (!tcId) { return; }
+        if (!tcId) {
+          return;
+        }
         this._runInTerminal(`npx playwright-generator generate --tc ${tcId}`);
         break;
       }
@@ -189,29 +332,42 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
 
       case "runByTag": {
         const tag = msg.tag as string;
-        if (!tag) { vscode.window.showWarningMessage("Please select a tag first."); return; }
+        if (!tag) {
+          vscode.window.showWarningMessage("Please select a tag first.");
+          return;
+        }
         this._runInTerminal(`npm run test:case -- ${tag}`);
         break;
       }
 
       case "runHeaded": {
         const tag = msg.tag as string;
-        if (!tag) { vscode.window.showWarningMessage("Please select a tag first."); return; }
+        if (!tag) {
+          vscode.window.showWarningMessage("Please select a tag first.");
+          return;
+        }
         this._runInTerminal(`npm run test:headed -- ${tag}`);
         break;
       }
 
       case "debug": {
         const tag = msg.tag as string;
-        if (!tag) { vscode.window.showWarningMessage("Please select a tag first."); return; }
+        if (!tag) {
+          vscode.window.showWarningMessage("Please select a tag first.");
+          return;
+        }
         this._runInTerminal(`npm run test:debug -- ${tag}`);
         break;
       }
 
       case "generateHelper": {
         const helperName = msg.helperName as string;
-        if (!helperName) { return; }
-        this._runInTerminal(`npx playwright-generator generate-helper ${helperName}`);
+        if (!helperName) {
+          return;
+        }
+        this._runInTerminal(
+          `npx playwright-generator generate-helper ${helperName}`,
+        );
         break;
       }
 
@@ -222,8 +378,12 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
   }
 
   private _getHtml(webview: vscode.Webview): string {
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "main.js"));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "style.css"));
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, "media", "main.js"),
+    );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, "media", "style.css"),
+    );
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
@@ -306,6 +466,11 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     <input type="number" id="RETRIES" placeholder="1">
 
     <div class="section-divider"></div>
+    <label class="section-label">Environments</label>
+    <div id="env-list"></div>
+    <button id="btn-add-environment">+ Add Environment</button>
+
+    <div class="section-divider"></div>
     <label class="section-label">Custom Environment Variables</label>
     <div id="custom-env-rows"></div>
     <button id="btn-add-env">+ Add Variable</button>
@@ -354,7 +519,8 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
 
 function getNonce(): string {
   let text = "";
-  const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   for (let i = 0; i < 32; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }

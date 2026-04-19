@@ -63,6 +63,36 @@ VIDEO=retain-on-failure
       console.log(chalk.green("✓ Created .env file"));
     }
 
+    // Create .envs file with default environments
+    // If .env already exists, migrate any custom (non-system) vars into the local section
+    const envsPath = path.join(projectRoot, ".envs");
+    if (!fs.existsSync(envsPath)) {
+      const systemKeys = new Set([
+        "AI_MODEL", "CLAUDE_API_KEY", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT",
+        "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_API_VERSION", "CHATGPT_API_KEY",
+        "CHATGPT_MODEL", "LOCAL_LLM_URL", "LOCAL_LLM_MODEL", "BROWSER", "HEADLESS",
+        "TIMEOUT", "RETRIES", "VIDEO", "RUNNING_ENVIRONMENT",
+      ]);
+
+      // Extract custom vars from existing .env
+      let localVars = "";
+      if (fs.existsSync(envPath)) {
+        const envLines = (await fs.readFile(envPath, "utf-8")).split("\n");
+        for (const line of envLines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith("#")) { continue; }
+          const eqIndex = trimmed.indexOf("=");
+          if (eqIndex === -1) { continue; }
+          const key = trimmed.slice(0, eqIndex).trim();
+          if (!systemKeys.has(key)) { localVars += line + "\n"; }
+        }
+      }
+
+      const envsContent = `# local\n${localVars}\n# integration\n\n# staging\n\n# production\n`;
+      await fs.writeFile(envsPath, envsContent);
+      console.log(chalk.green("\u2713 Created .envs file"));
+    }
+
     // Create playwright.config.ts
     const playwrightConfig = `import { defineConfig, devices } from '@playwright/test';
 import { config } from 'dotenv';
@@ -333,6 +363,7 @@ dist/
 .DS_Store
 .env
 .env.local
+.envs
 *.log
 npm-debug.log*
 yarn-debug.log*
