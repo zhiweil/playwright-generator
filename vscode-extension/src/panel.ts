@@ -265,6 +265,14 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
           this._workspaceRoot,
           msg.customEnv as Record<string, string>,
         );
+        // Also save to the current running environment in .envs
+        const env = readEnv(this._workspaceRoot);
+        const currentEnvName = env.RUNNING_ENVIRONMENT || "local";
+        saveEnvironmentVars(
+          this._workspaceRoot,
+          currentEnvName,
+          msg.customEnv as Record<string, string>,
+        );
         break;
 
       case "activateEnvironment": {
