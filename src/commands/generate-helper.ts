@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs-extra";
 import chalk from "chalk";
 import { LLMFactory } from "../llm";
-import { HelperPrompt } from "../llm/provider";
+import { HelperPrompt, HelperParameter } from "../llm/provider";
 import configManager from "../config";
 
 export interface GenerateHelperOptions {
@@ -14,6 +14,7 @@ interface HelperAction {
   name: string;
   description: string;
   details: string;
+  parameters: HelperParameter[];
 }
 
 interface HelperDefinition {
@@ -25,7 +26,9 @@ interface HelperDefinition {
 // Recursively find all files matching a suffix under a directory
 function findFiles(dir: string, suffix: string): string[] {
   const results: string[] = [];
-  if (!fs.existsSync(dir)) { return results; }
+  if (!fs.existsSync(dir)) {
+    return results;
+  }
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -37,7 +40,10 @@ function findFiles(dir: string, suffix: string): string[] {
   return results;
 }
 
-async function findHelperFile(helpersDir: string, helperName: string): Promise<string | null> {
+async function findHelperFile(
+  helpersDir: string,
+  helperName: string,
+): Promise<string | null> {
   const files = findFiles(helpersDir, ".md");
   for (const file of files) {
     const content = await fs.readFile(file, "utf-8");
@@ -48,11 +54,49 @@ async function findHelperFile(helpersDir: string, helperName: string): Promise<s
   return null;
 }
 
-function parseHelperDefinition(content: string, helperName: string): HelperDefinition {
+function parseParameters(paramsLine: string): HelperParameter[] {
+  if (!paramsLine || !paramsLine.includes("[HELPER-PARAMS:")) {
+    return [];
+  }
+
+  // Extract the content between [HELPER-PARAMS: and the closing ]
+  const match = paramsLine.match(/\[HELPER-PARAMS:\s*([^\]]*)\]/);
+  if (!match || !match[1]) {
+    return [];
+  }
+
+  const paramsText = match[1].trim();
+  if (!paramsText) {
+    return [];
+  }
+
+  // Split by comma and parse each parameter
+  const parameters: HelperParameter[] = paramsText.split(",").map((param) => {
+    const [name, type] = param
+      .trim()
+      .split(":")
+      .map((s) => s.trim());
+    if (!name || !type) {
+      throw new Error(
+        `Invalid parameter format: "${param}". Expected "name: type"`,
+      );
+    }
+    return { name, type };
+  });
+
+  return parameters;
+}
+
+function parseHelperDefinition(
+  content: string,
+  helperName: string,
+): HelperDefinition {
   const lines = content.replace(/\r\n/g, "\n").split("\n");
 
   // Find the HELPER tag line
-  const helperTagIndex = lines.findIndex(l => l.includes(`[HELPER: ${helperName}]`));
+  const helperTagIndex = lines.findIndex((l) =>
+    l.includes(`[HELPER: ${helperName}]`),
+  );
   if (helperTagIndex === -1) {
     throw new Error(`[HELPER: ${helperName}] not found in file`);
   }
@@ -73,14 +117,25 @@ function parseHelperDefinition(content: string, helperName: string): HelperDefin
 
   for (let i = 0; i < lines.length; i++) {
     const match = lines[i].match(actionRegex);
-    if (!match) { continue; }
+    if (!match) {
+      continue;
+    }
 
     const actionName = match[1];
 
+    // Extract parameters if [HELPER-PARAMS:] tag exists on the next line or nearby
+    let parameters: HelperParameter[] = [];
+    let detailsStart = i + 1;
+
+    // Check the next line for parameters
+    if (i + 1 < lines.length && lines[i + 1].includes("[HELPER-PARAMS:")) {
+      parameters = parseParameters(lines[i + 1]);
+      detailsStart = i + 2;
+    }
+
     // Action description: next non-empty line starting with ##
     let actionDescription = "";
-    let detailsStart = i + 1;
-    for (let j = i + 1; j < lines.length; j++) {
+    for (let j = detailsStart; j < lines.length; j++) {
       const trimmed = lines[j].trim();
       if (trimmed.startsWith("##")) {
         actionDescription = trimmed.replace(/^#+\s*/, "").trim();
@@ -99,7 +154,12 @@ function parseHelperDefinition(content: string, helperName: string): HelperDefin
     }
 
     const details = lines.slice(detailsStart, detailsEnd).join("\n").trim();
-    actions.push({ name: actionName, description: actionDescription, details });
+    actions.push({
+      name: actionName,
+      description: actionDescription,
+      details,
+      parameters,
+    });
   }
 
   return { name: helperName, description, actions };
@@ -111,18 +171,24 @@ function extractMethodCode(raw: string, actionName: string): string {
   const fenceMatches = [...raw.matchAll(fenceRegex)];
   if (fenceMatches.length > 0) {
     const best = fenceMatches
-      .map(m => m[1]?.trim() || "")
+      .map((m) => m[1]?.trim() || "")
       .filter(Boolean)
       .reduce((a, b) => (b.length > a.length ? b : a), "");
-    if (best) { return best; }
+    if (best) {
+      return best;
+    }
   }
 
   // Fall back to extracting the static method
   const methodIndex = raw.indexOf(`static async ${actionName}`);
-  if (methodIndex === -1) { return raw.trim(); }
+  if (methodIndex === -1) {
+    return raw.trim();
+  }
 
   const bodyStart = raw.indexOf("{", methodIndex);
-  if (bodyStart === -1) { return raw.slice(methodIndex).trim(); }
+  if (bodyStart === -1) {
+    return raw.slice(methodIndex).trim();
+  }
 
   let braceCount = 1;
   let inString = false;
@@ -131,13 +197,32 @@ function extractMethodCode(raw: string, actionName: string): string {
 
   for (let i = bodyStart + 1; i < raw.length; i++) {
     const char = raw[i];
-    if (escaped) { escaped = false; continue; }
-    if (char === "\\") { escaped = true; continue; }
-    if (!inString && (char === '"' || char === "'" || char === "`")) { inString = true; stringChar = char; continue; }
-    if (inString && char === stringChar) { inString = false; continue; }
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (!inString && (char === '"' || char === "'" || char === "`")) {
+      inString = true;
+      stringChar = char;
+      continue;
+    }
+    if (inString && char === stringChar) {
+      inString = false;
+      continue;
+    }
     if (!inString) {
-      if (char === "{") { braceCount++; }
-      else if (char === "}") { braceCount--; if (braceCount === 0) { return raw.slice(methodIndex, i + 1).trim(); } }
+      if (char === "{") {
+        braceCount++;
+      } else if (char === "}") {
+        braceCount--;
+        if (braceCount === 0) {
+          return raw.slice(methodIndex, i + 1).trim();
+        }
+      }
     }
   }
 
@@ -150,7 +235,9 @@ function extractExistingMethods(code: string): Set<string> {
   const noBlock = code.replace(/\/\*[\s\S]*?\*\//g, "");
   const methodRegex = /static\s+async\s+([A-Za-z][A-Za-z0-9_]*)\s*\(/g;
   for (const line of noBlock.split("\n")) {
-    if (line.trim().startsWith("//")) { continue; }
+    if (line.trim().startsWith("//")) {
+      continue;
+    }
     for (const m of line.matchAll(methodRegex)) {
       existing.add(m[1]);
     }
@@ -172,7 +259,9 @@ export async function generateHelper(
     console.log(chalk.blue("Validating LLM connection..."));
     const isConnected = await llmProvider.validateConnection();
     if (!isConnected) {
-      console.warn(chalk.yellow("⚠ Warning: Could not validate LLM connection"));
+      console.warn(
+        chalk.yellow("⚠ Warning: Could not validate LLM connection"),
+      );
     } else {
       console.log(chalk.green("✓ LLM connection validated"));
     }
@@ -182,7 +271,9 @@ export async function generateHelper(
 
     const helperFile = await findHelperFile(helpersDir, options.helperName);
     if (!helperFile) {
-      throw new Error(`Helper definition file for "${options.helperName}" not found in helpers/ folder`);
+      throw new Error(
+        `Helper definition file for "${options.helperName}" not found in helpers/ folder`,
+      );
     }
 
     console.log(chalk.gray(`Found: ${path.relative(projectRoot, helperFile)}`));
@@ -191,11 +282,17 @@ export async function generateHelper(
     const definition = parseHelperDefinition(content, options.helperName);
 
     if (definition.actions.length === 0) {
-      throw new Error(`No [HELPER-ACTION:] sections found in helper definition`);
+      throw new Error(
+        `No [HELPER-ACTION:] sections found in helper definition`,
+      );
     }
 
     console.log(chalk.blue(`\nGenerating helper class: ${definition.name}`));
-    console.log(chalk.gray(`Found ${definition.actions.length} action(s): ${definition.actions.map(a => a.name).join(", ")}`));
+    console.log(
+      chalk.gray(
+        `Found ${definition.actions.length} action(s): ${definition.actions.map((a) => a.name).join(", ")}`,
+      ),
+    );
 
     await fs.ensureDir(outputDir);
     const outputFile = path.join(outputDir, `${definition.name}.ts`);
@@ -206,16 +303,28 @@ export async function generateHelper(
       ? extractExistingMethods(await fs.readFile(outputFile, "utf-8"))
       : new Set<string>();
 
-    const actionsToGenerate = definition.actions.filter(a => !existingMethods.has(a.name));
-    const skipped = definition.actions.filter(a => existingMethods.has(a.name));
+    const actionsToGenerate = definition.actions.filter(
+      (a) => !existingMethods.has(a.name),
+    );
+    const skipped = definition.actions.filter((a) =>
+      existingMethods.has(a.name),
+    );
 
     if (skipped.length > 0) {
-      console.log(chalk.gray(`  Skipping already generated: ${skipped.map(a => a.name).join(", ")}`));
+      console.log(
+        chalk.gray(
+          `  Skipping already generated: ${skipped.map((a) => a.name).join(", ")}`,
+        ),
+      );
     }
 
     if (actionsToGenerate.length === 0) {
-      console.log(chalk.green(`\n✓ All actions already generated for ${definition.name}`));
-      console.log(chalk.cyan(`File: ${path.relative(projectRoot, outputFile)}`));
+      console.log(
+        chalk.green(`\n✓ All actions already generated for ${definition.name}`),
+      );
+      console.log(
+        chalk.cyan(`File: ${path.relative(projectRoot, outputFile)}`),
+      );
       return;
     }
 
@@ -230,6 +339,7 @@ export async function generateHelper(
         actionName: action.name,
         actionDescription: action.description,
         actionDetails: action.details,
+        parameters: action.parameters,
       };
 
       const generated = await llmProvider.generateHelperAction(prompt);
@@ -238,15 +348,24 @@ export async function generateHelper(
       console.log(chalk.green(`  ✓ Generated action: ${action.name}`));
     }
 
-    const indentedNewMethods = newMethods.map(m =>
-      m.split("\n").map(line => (line.trim() ? `  ${line}` : "")).join("\n")
-    ).join("\n\n");
+    const indentedNewMethods = newMethods
+      .map((m) =>
+        m
+          .split("\n")
+          .map((line) => (line.trim() ? `  ${line}` : ""))
+          .join("\n"),
+      )
+      .join("\n\n");
 
     if (fileExists) {
       // Append new methods into the existing class before the closing brace
       let existing = await fs.readFile(outputFile, "utf-8");
       const lastBrace = existing.lastIndexOf("}");
-      existing = existing.slice(0, lastBrace).trimEnd() + "\n\n" + indentedNewMethods + "\n}\n";
+      existing =
+        existing.slice(0, lastBrace).trimEnd() +
+        "\n\n" +
+        indentedNewMethods +
+        "\n}\n";
       await fs.writeFile(outputFile, existing);
     } else {
       // Create the full class from scratch
@@ -263,7 +382,9 @@ ${indentedNewMethods}
     }
 
     console.log(chalk.green.bold(`\n✓ Helper class generated!`));
-    console.log(chalk.cyan(`Generated file: ${path.relative(projectRoot, outputFile)}`));
+    console.log(
+      chalk.cyan(`Generated file: ${path.relative(projectRoot, outputFile)}`),
+    );
   } catch (error) {
     console.error(chalk.red("Error generating helper:"), error);
     throw error;

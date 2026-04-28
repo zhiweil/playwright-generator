@@ -4,12 +4,18 @@ export interface LLMPrompt {
   tags: string[];
 }
 
+export interface HelperParameter {
+  name: string;
+  type: string;
+}
+
 export interface HelperPrompt {
   helperName: string;
   helperDescription: string;
   actionName: string;
   actionDescription: string;
   actionDetails: string;
+  parameters?: HelperParameter[];
 }
 
 export interface GeneratedCode {
@@ -60,6 +66,19 @@ test('${tagString} Test Description', async ({ page }) => {
   }
 
   protected buildHelperActionPrompt(prompt: HelperPrompt): string {
+    // Build parameter list: page first, then additional parameters
+    let parameterList = "page: Page";
+    let parameterDescription = "";
+
+    if (prompt.parameters && prompt.parameters.length > 0) {
+      const additionalParams = prompt.parameters
+        .map((p) => `${p.name}: ${p.type}`)
+        .join(", ");
+      parameterList += `, ${additionalParams}`;
+      parameterDescription = `\nParameters:\n- page: Page (Playwright page object)
+${prompt.parameters.map((p) => `- ${p.name}: ${p.type}`).join("\n")}`;
+    }
+
     return `You are an expert Playwright test automation engineer.
 Generate a single static TypeScript method for a Playwright helper class based on the following natural language definition.
 
@@ -69,16 +88,17 @@ Helper description: ${prompt.helperDescription}
 Action name: ${prompt.actionName}
 Action description: ${prompt.actionDescription}
 Action details:
-${prompt.actionDetails}
+${prompt.actionDetails}${parameterDescription}
 
 Requirements:
 - Generate ONLY the static async method body, no class wrapper, no imports
-- Method signature: static async ${prompt.actionName}(page: Page): Promise<void>
+- Method signature: static async ${prompt.actionName}(${parameterList}): Promise<void>
 - Use Playwright best practices with auto-waiting
 - Be readable and maintainable
+- Use all provided parameters in the method implementation
 
 Generate ONLY the method in this exact format:
-  static async ${prompt.actionName}(page: Page): Promise<void> {
+  static async ${prompt.actionName}(${parameterList}): Promise<void> {
     // implementation
   }`;
   }

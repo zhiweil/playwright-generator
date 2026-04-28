@@ -331,6 +331,95 @@ export class LoginHelper {
 - Then the user completes checkout
 ```
 
+#### Helper Methods with Parameters
+
+The LLM provider supports generating helper methods that accept multiple parameters beyond the required `Page` object. Each helper method can have:
+
+- **First parameter (required)**: `page: Page` - The Playwright Page object
+- **Additional parameters**: Specified in the helper definition with custom types
+
+**Adding Parameters to Helper Methods**:
+
+Use the `[HELPER-PARAMS:]` tag on the line following `[HELPER-ACTION:]` to specify parameters:
+
+```markdown
+[HELPER: LoginHelper]
+
+# Provides login helper methods
+
+[HELPER-ACTION: loginWithCredentials]
+[HELPER-PARAMS: username: string, password: string]
+
+## Logs in to the application with given credentials
+
+This method should:
+
+- Navigate to the login page
+- Enter the username in the username field
+- Enter the password in the password field
+- Click the login button
+- Wait for the dashboard to appear
+
+Details:
+
+- Username field selector: #username
+- Password field selector: #password
+- Login button selector: button[type="submit"]
+```
+
+**Generated Code with Parameters**:
+
+```typescript
+static async loginWithCredentials(page: Page, username: string, password: string): Promise<void> {
+  // Implementation with all three parameters available
+}
+```
+
+**Usage in Tests**:
+
+```typescript
+import { LoginHelper } from "./helpers/LoginHelper";
+
+test("TC-001 User login", async ({ page }) => {
+  await LoginHelper.loginWithCredentials(
+    page,
+    "testuser@example.com",
+    "password123",
+  );
+  // Rest of test...
+});
+```
+
+**Multiple Parameters**:
+
+Specify multiple parameters separated by commas:
+
+```markdown
+[HELPER-PARAMS: param1: string, param2: number, param3: boolean, param4: string[]]
+```
+
+**Supported Parameter Types**:
+
+The LLM respects TypeScript type annotations:
+
+- Primitive types: `string`, `number`, `boolean`
+- Arrays: `string[]`, `number[]`
+- Custom types: Any TypeScript type your project uses
+- Union types: `'success' | 'error' | 'warning'`
+- Interfaces: `LoginCredentials`, `UserData`, etc.
+
+**Parameter Guidelines**:
+
+- Always use `page: Page` as the first parameter (automatically handled)
+- Use descriptive parameter names that indicate their purpose
+- Keep TypeScript types consistent with your codebase
+- Include parameter descriptions in the "Action details" section if needed
+- The LLM is instructed to use all provided parameters in the implementation
+
+**Backwards Compatibility**:
+
+Existing helper definitions without the `[HELPER-PARAMS:]` tag continue to work, generating methods with only the `page: Page` parameter.
+
 ### Test Results & Reporting
 
 - Test execution produces detailed reports with pass/fail status
@@ -407,7 +496,7 @@ Workflow file location: `.github/workflows/playwright-tests.yml`
    - Expected outcomes clearly stated
 4. **Code Review**: Always review generated code before committing
 5. **Assertions**: Be explicit about what you're asserting
-7. **Helper Classes**: Use `generate-helper` to create reusable helper classes for common actions, reducing duplication across test cases
+6. **Helper Classes**: Use `generate-helper` to create reusable helper classes for common actions, reducing duplication across test cases
 
 ### Troubleshooting
 
