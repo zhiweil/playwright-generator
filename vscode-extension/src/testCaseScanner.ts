@@ -7,8 +7,10 @@ export interface HelperInfo {
   generated: boolean;
 }
 
-export async function scanHelpers(workspaceRoot: string): Promise<HelperInfo[]> {
-  const helpersDir = path.join(workspaceRoot, "helpers");
+export async function scanHelpers(
+  workspaceRoot: string,
+): Promise<HelperInfo[]> {
+  const helpersMdDir = path.join(workspaceRoot, "helpers-md");
   const generatedDir = path.join(workspaceRoot, "generated", "helpers");
 
   const methodRegex = /static\s+async\s+([A-Za-z][A-Za-z0-9_]*)\s*\(/g;
@@ -16,13 +18,19 @@ export async function scanHelpers(workspaceRoot: string): Promise<HelperInfo[]> 
   const map = new Map<string, HelperInfo>();
 
   // Scan natural language definitions in helpers/
-  if (fs.existsSync(helpersDir)) {
-    for (const file of await walk(helpersDir, ".md")) {
+  if (fs.existsSync(helpersMdDir)) {
+    for (const file of await walk(helpersMdDir, ".md")) {
       const content = await fs.promises.readFile(file, "utf-8");
       const { helperName } = parseHelperMd(content);
-      if (!helperName) { continue; }
+      if (!helperName) {
+        continue;
+      }
       if (!map.has(helperName)) {
-        map.set(helperName, { name: helperName, actions: [], generated: false });
+        map.set(helperName, {
+          name: helperName,
+          actions: [],
+          generated: false,
+        });
       }
     }
   }
@@ -57,7 +65,9 @@ function parseHelperMd(content: string): { helperName: string | null } {
   const helperTagRegex = /^\[HELPER:\s*([A-Za-z][A-Za-z0-9_]*)\]/;
   for (const line of activeLines(content)) {
     const m = line.trim().match(helperTagRegex);
-    if (m) { return { helperName: m[1] }; }
+    if (m) {
+      return { helperName: m[1] };
+    }
   }
   return { helperName: null };
 }
@@ -70,10 +80,14 @@ function extractActiveMethods(content: string, regex: RegExp): string[] {
   for (const line of noBlock.split("\n")) {
     const trimmed = line.trim();
     // Skip single-line comments
-    if (trimmed.startsWith("//")) { continue; }
+    if (trimmed.startsWith("//")) {
+      continue;
+    }
     regex.lastIndex = 0;
     const m = regex.exec(trimmed);
-    if (m) { results.push(m[1]); }
+    if (m) {
+      results.push(m[1]);
+    }
   }
   return results;
 }
@@ -83,9 +97,13 @@ export interface TestCaseEntry {
   duplicate: boolean;
 }
 
-export async function scanTestCaseIds(workspaceRoot: string): Promise<TestCaseEntry[]> {
-  const testsDir = path.join(workspaceRoot, "tests");
-  if (!fs.existsSync(testsDir)) { return []; }
+export async function scanTestCaseIds(
+  workspaceRoot: string,
+): Promise<TestCaseEntry[]> {
+  const testsDir = path.join(workspaceRoot, "tests-md");
+  if (!fs.existsSync(testsDir)) {
+    return [];
+  }
 
   const idCounts = new Map<string, number>();
   const idRegex = /\[TC-[A-Z0-9_-]+\]/gi;
@@ -106,21 +124,29 @@ export async function scanTestCaseIds(workspaceRoot: string): Promise<TestCaseEn
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-export async function scanTags(workspaceRoot: string): Promise<string[]> {
-  const generatedDir = path.join(workspaceRoot, "generated");
-  if (!fs.existsSync(generatedDir)) { return []; }
-
+export async function scanTags(
+  workspaceRoot: string,
+  dirNames: string[] = ["generated", "tests"],
+): Promise<string[]> {
   const tags = new Set<string>();
   const tagRegex = /\[([A-Z0-9][A-Z0-9\-]*[A-Z0-9])\]/g;
 
-  for (const file of await walkTs(generatedDir)) {
-    const content = await fs.promises.readFile(file, "utf-8");
-    // Remove block comments then skip single-line commented lines
-    const noBlock = content.replace(/\/\*[\s\S]*?\*\//g, "");
-    for (const line of noBlock.split("\n")) {
-      if (line.trim().startsWith("//")) { continue; }
-      for (const match of line.matchAll(tagRegex)) {
-        tags.add(match[1]);
+  for (const dirName of dirNames) {
+    const dir = path.join(workspaceRoot, dirName);
+    if (!fs.existsSync(dir)) {
+      continue;
+    }
+
+    for (const file of await walkTs(dir)) {
+      const content = await fs.promises.readFile(file, "utf-8");
+      const noBlock = content.replace(/\/\*[\s\S]*?\*\//g, "");
+      for (const line of noBlock.split("\n")) {
+        if (line.trim().startsWith("//")) {
+          continue;
+        }
+        for (const match of line.matchAll(tagRegex)) {
+          tags.add(match[1]);
+        }
       }
     }
   }
@@ -142,7 +168,7 @@ async function walk(dir: string, ext: string): Promise<string[]> {
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      results.push(...await walk(full, ext));
+      results.push(...(await walk(full, ext)));
     } else if (entry.isFile() && entry.name.endsWith(ext)) {
       results.push(full);
     }

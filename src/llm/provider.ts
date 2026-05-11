@@ -32,7 +32,7 @@ export abstract class LLMProvider {
 
   protected buildPrompt(prompt: LLMPrompt): string {
     const tagString = prompt.tags.map((t) => `[${t}]`).join(" ");
-    return `You are an expert Playwright test automation engineer. 
+    return `You are an expert Playwright test automation engineer.
 Generate Playwright TypeScript test code based on the following natural language test case.
 The generated code should:
 - Use Playwright best practices
@@ -44,7 +44,7 @@ The generated code should:
 - Example of correct title format: test('${tagString} Your description here', ...)
 - Do NOT omit any tags. Do NOT add extra tags.
 - If helper functions are needed, they are always static methods in helper classes, so do not create instances of helper classes.
-- Please scan folder /generated/helpers/ for existing helper classes and methods.
+- Please scan folder /helpers/ for existing helper classes and methods.
 - Please inject a import at the beginning of the test file for any helper classes used if they are not already imported, e.g. import { HelperClassName } from './helpers/HelperFileName';
 - Please always call the methods by prefixing with the class name, e.g. HelperClass}.MethodName()
 

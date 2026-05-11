@@ -103,14 +103,15 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
     }
     this._watchers = [];
 
-    const testsWatcher = vscode.workspace.createFileSystemWatcher(
-      "**/tests/**/*.test.md",
+    const testsMdWatcher = vscode.workspace.createFileSystemWatcher(
+      "**/tests-md/**/*.test.md",
     );
     const generatedWatcher = vscode.workspace.createFileSystemWatcher(
       "**/generated/**/*.test.ts",
     );
-    const helpersWatcher =
-      vscode.workspace.createFileSystemWatcher("**/helpers/**/*.md");
+    const helpersMdWatcher = vscode.workspace.createFileSystemWatcher(
+      "**/helpers-md/**/*.md",
+    );
     const generatedHelpersWatcher = vscode.workspace.createFileSystemWatcher(
       "**/generated/helpers/**/*.ts",
     );
@@ -145,26 +146,26 @@ export class PlaywrightGeneratorPanel implements vscode.WebviewViewProvider {
       });
     };
 
-    testsWatcher.onDidChange(refreshIds);
-    testsWatcher.onDidCreate(refreshIds);
-    testsWatcher.onDidDelete(refreshIds);
+    testsMdWatcher.onDidChange(refreshIds);
+    testsMdWatcher.onDidCreate(refreshIds);
+    testsMdWatcher.onDidDelete(refreshIds);
     generatedWatcher.onDidChange(refreshTags);
     generatedWatcher.onDidCreate(refreshTags);
     generatedWatcher.onDidDelete(refreshTags);
     generatedWatcher.onDidChange(refreshHelpers);
     generatedWatcher.onDidCreate(refreshHelpers);
     generatedWatcher.onDidDelete(refreshHelpers);
-    helpersWatcher.onDidChange(refreshHelpers);
-    helpersWatcher.onDidCreate(refreshHelpers);
-    helpersWatcher.onDidDelete(refreshHelpers);
+    helpersMdWatcher.onDidChange(refreshHelpers);
+    helpersMdWatcher.onDidCreate(refreshHelpers);
+    helpersMdWatcher.onDidDelete(refreshHelpers);
     generatedHelpersWatcher.onDidChange(refreshHelpers);
     generatedHelpersWatcher.onDidCreate(refreshHelpers);
     generatedHelpersWatcher.onDidDelete(refreshHelpers);
 
     this._watchers.push(
-      testsWatcher,
+      testsMdWatcher,
       generatedWatcher,
-      helpersWatcher,
+      helpersMdWatcher,
       generatedHelpersWatcher,
       envsWatcher,
     );
